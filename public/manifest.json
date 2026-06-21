@@ -1,12 +1,19 @@
 {
+  "id": "/?source=pwa",
   "name": "Lifesaver Blood Donor Hub",
   "short_name": "Lifesaver",
   "description": "Sleek registry to manage blood donors and track resting periods.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#121824",
-  "theme_color": "#e03e3e",
+  "theme_color": "#121824",
   "orientation": "portrait-primary",
+  "categories": [
+    "medical",
+    "health",
+    "productivity"
+  ],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icon-192.png",
@@ -19,6 +26,22 @@
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot.png",
+      "sizes": "1024x550",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Lifesaver Desktop Dashboard"
+    },
+    {
+      "src": "/screenshot.png",
+      "sizes": "1024x550",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Lifesaver Mobile View"
     }
   ]
 }
