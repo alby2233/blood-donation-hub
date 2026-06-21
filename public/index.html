@@ -163,15 +163,16 @@
               <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
               <input type="tel" id="reg-phone" required placeholder="e.g. 555-0199 or +1 234 567 890">
             </div>
-            <span class="error-message" id="error-reg-phone">Please enter a valid phone number.</span>
+            <span class="error-message" id="error-reg-phone">Please enter a valid 10-digit Indian phone number (e.g. +91 9876543210 or 9876543210).</span>
           </div>
 
           <div class="form-group">
             <label for="reg-unit">Unit (Ward No.)</label>
             <div class="input-wrapper">
               <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              <input type="text" id="reg-unit" placeholder="e.g. Unit 3 or Ward 8">
+              <input type="text" id="reg-unit" required placeholder="e.g. Unit 3 or Ward 8">
             </div>
+            <span class="error-message" id="error-reg-unit">Unit or Ward is required.</span>
           </div>
 
           <div class="form-group">
@@ -284,15 +285,16 @@
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
             <input type="tel" id="edit-phone" required placeholder="e.g. 555-0199">
           </div>
-          <span class="error-message" id="error-edit-phone">Phone number is required.</span>
+          <span class="error-message" id="error-edit-phone">Please enter a valid 10-digit Indian phone number (e.g. 9876543210).</span>
         </div>
 
         <div class="form-group">
           <label for="edit-unit">Unit (Ward No.)</label>
           <div class="input-wrapper">
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <input type="text" id="edit-unit" placeholder="e.g. Unit 3 or Ward 8">
+            <input type="text" id="edit-unit" required placeholder="e.g. Unit 3 or Ward 8">
           </div>
+          <span class="error-message" id="error-edit-unit">Unit or Ward is required.</span>
         </div>
 
         <div class="form-group">

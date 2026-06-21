@@ -476,6 +476,14 @@ function renderManageTable(searchQuery = '') {
 // ==========================================================================
 // BACKEND MUTATIONS: POST, PUT, DELETE, DONATE
 // ==========================================================================
+
+// Helper to validate Indian phone formats (strips whitespace/dashes first)
+function isValidIndianPhone(phone) {
+  const cleaned = phone.replace(/[-\s\(\)]/g, '');
+  const indianRegex = /^(\+91|91|0)?[6-9]\d{9}$/;
+  return indianRegex.test(cleaned);
+}
+
 async function handleRegisterSubmit(e) {
   e.preventDefault();
   
@@ -489,18 +497,28 @@ async function handleRegisterSubmit(e) {
   // Client side validation
   let hasError = false;
   
-  if (!nameInput.value || nameInput.value.trim().length === 0) {
+  // Validate Name (At least 3 characters)
+  if (!nameInput.value || nameInput.value.trim().length < 3) {
     nameInput.closest('.form-group').classList.add('has-error');
     hasError = true;
   } else {
     nameInput.closest('.form-group').classList.remove('has-error');
   }
 
-  if (!phoneInput.value || phoneInput.value.trim().length === 0) {
+  // Validate Phone (Indian mobile format)
+  if (!phoneInput.value || !isValidIndianPhone(phoneInput.value)) {
     phoneInput.closest('.form-group').classList.add('has-error');
     hasError = true;
   } else {
     phoneInput.closest('.form-group').classList.remove('has-error');
+  }
+
+  // Validate Unit/Ward (Required)
+  if (!unitInput || !unitInput.value || unitInput.value.trim().length === 0) {
+    unitInput.closest('.form-group').classList.add('has-error');
+    hasError = true;
+  } else {
+    unitInput.closest('.form-group').classList.remove('has-error');
   }
 
   if (hasError) return;
@@ -548,19 +566,31 @@ async function handleEditSubmit(e) {
 
   if (!nameInput || !phoneInput || !bloodGroupRadio) return;
 
+  // Client side validation
   let hasError = false;
-  if (!nameInput.value.trim()) {
+  
+  // Validate Name (At least 3 characters)
+  if (!nameInput.value || nameInput.value.trim().length < 3) {
     nameInput.closest('.form-group').classList.add('has-error');
     hasError = true;
   } else {
     nameInput.closest('.form-group').classList.remove('has-error');
   }
 
-  if (!phoneInput.value.trim()) {
+  // Validate Phone (Indian mobile format)
+  if (!phoneInput.value || !isValidIndianPhone(phoneInput.value)) {
     phoneInput.closest('.form-group').classList.add('has-error');
     hasError = true;
   } else {
     phoneInput.closest('.form-group').classList.remove('has-error');
+  }
+
+  // Validate Unit/Ward (Required)
+  if (!unitInput || !unitInput.value || unitInput.value.trim().length === 0) {
+    unitInput.closest('.form-group').classList.add('has-error');
+    hasError = true;
+  } else {
+    unitInput.closest('.form-group').classList.remove('has-error');
   }
 
   if (hasError) return;
