@@ -1315,7 +1315,7 @@ body {
    PRINT MEDIA STYLES (Clean PDF Report Output)
    ========================================================================== */
 @media print {
-  /* Hide all UI interactable elements and layout headers */
+  /* Hide all UI interactable elements, layout headers, and donation eligibility details */
   .app-header, 
   .app-footer, 
   .stats-panel, 
@@ -1328,6 +1328,12 @@ body {
   .drawer-overlay,
   .toast-container,
   .modal-backdrop,
+  .status-badge,
+  .donor-card-footer,
+  .manage-table th:nth-child(5),
+  .manage-table td:nth-child(5),
+  .manage-table th.actions-col,
+  .manage-table td.actions-col,
   #print-btn {
     display: none !important;
   }
