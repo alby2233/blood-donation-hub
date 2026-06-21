@@ -117,31 +117,88 @@ function setupEventListeners() {
     }
   });
 
-  // Print Button trigger
+  // Print Button trigger with 150ms paint pass delay to prevent empty DOM capture in print dialog
   const printBtn = document.getElementById('print-btn');
   if (printBtn) {
     printBtn.addEventListener('click', () => {
-      window.print();
+      // 1. Save current filters
+      const savedFilter = state.currentFilter;
+      const savedSearchQuery = state.searchQuery;
+      let savedManageSearchQuery = '';
+      if (manageSearchInput) {
+        savedManageSearchQuery = manageSearchInput.value;
+        manageSearchInput.value = '';
+      }
+
+      // 2. Set filters to show all donors
+      state.currentFilter = 'all';
+      state.searchQuery = '';
+      
+      // Update pills UI on screen temporarily
+      document.querySelectorAll('.blood-pill').forEach(pill => pill.classList.remove('active'));
+      const pillAll = document.getElementById('pill-all');
+      if (pillAll) pillAll.classList.add('active');
+
+      const listPage = document.getElementById('list-page');
+      if (listPage) {
+        listPage.setAttribute('data-active-filter', 'All');
+      }
+
+      // 3. Render all donors
+      renderDonorsGrid();
+      renderManageTable();
+
+      // 4. Wait for browser paint pass, then print
+      setTimeout(() => {
+        window.print();
+
+        // 5. Restore original filters
+        state.currentFilter = savedFilter;
+        state.searchQuery = savedSearchQuery;
+        if (manageSearchInput) {
+          manageSearchInput.value = savedManageSearchQuery;
+        }
+
+        // Restore pills UI on screen
+        document.querySelectorAll('.blood-pill').forEach(pill => {
+          if (pill.dataset.group === savedFilter) {
+            pill.classList.add('active');
+          } else {
+            pill.classList.remove('active');
+          }
+        });
+
+        if (listPage) {
+          listPage.setAttribute('data-active-filter', savedFilter);
+        }
+
+        // 6. Re-render filtered view
+        renderDonorsGrid();
+        if (manageSearchInput) {
+          renderManageTable(savedManageSearchQuery.toLowerCase().trim());
+        } else {
+          renderManageTable();
+        }
+      }, 150);
     });
   }
 
-  // Temporarily show all donors during printing
-  let savedFilter = 'all';
-  let savedSearchQuery = '';
-  let savedManageSearchQuery = '';
+  // Fallback print listeners for Ctrl+P / browser menu triggers
+  let savedFilterFallback = 'all';
+  let savedSearchQueryFallback = '';
+  let savedManageSearchQueryFallback = '';
 
   window.addEventListener('beforeprint', () => {
-    savedFilter = state.currentFilter;
-    savedSearchQuery = state.searchQuery;
+    savedFilterFallback = state.currentFilter;
+    savedSearchQueryFallback = state.searchQuery;
     if (manageSearchInput) {
-      savedManageSearchQuery = manageSearchInput.value;
+      savedManageSearchQueryFallback = manageSearchInput.value;
       manageSearchInput.value = '';
     }
     
     state.currentFilter = 'all';
     state.searchQuery = '';
     
-    // Update data attribute for print header
     const listPage = document.getElementById('list-page');
     if (listPage) {
       listPage.setAttribute('data-active-filter', 'All');
@@ -152,21 +209,20 @@ function setupEventListeners() {
   });
 
   window.addEventListener('afterprint', () => {
-    state.currentFilter = savedFilter;
-    state.searchQuery = savedSearchQuery;
+    state.currentFilter = savedFilterFallback;
+    state.searchQuery = savedSearchQueryFallback;
     if (manageSearchInput) {
-      manageSearchInput.value = savedManageSearchQuery;
+      manageSearchInput.value = savedManageSearchQueryFallback;
     }
     
-    // Restore data attribute
     const listPage = document.getElementById('list-page');
     if (listPage) {
-      listPage.setAttribute('data-active-filter', savedFilter);
+      listPage.setAttribute('data-active-filter', savedFilterFallback);
     }
     
     renderDonorsGrid();
     if (manageSearchInput) {
-      renderManageTable(savedManageSearchQuery.toLowerCase().trim());
+      renderManageTable(savedManageSearchQueryFallback.toLowerCase().trim());
     } else {
       renderManageTable();
     }
