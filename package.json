@@ -1,0 +1,13 @@
+{
+  "name": "blood-donation-hub",
+  "version": "1.0.0",
+  "description": "A premium full-stack registry web application for managing blood donors with resting period tracking.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "mongoose": "^9.7.1"
+  }
+}

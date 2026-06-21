@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A premium blood donor registry application to search, register, and manage donor status with automatic 6-month rest calculations.">
+  <title>Lifesaver | Blood Donor Hub</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Toast Notification System -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Header & Navigation -->
+  <header class="app-header">
+    <div class="header-container">
+      <a href="#" class="brand-logo" id="brand-logo">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor"/>
+        </svg>
+        <span>Blood Donors</span>
+      </a>
+
+      <!-- Desktop Nav -->
+      <nav class="desktop-nav">
+        <button class="nav-link active" data-target="list-page" id="nav-list">Find Donors</button>
+        <button class="nav-link" data-target="register-page" id="nav-register">Register Donor</button>
+        <button class="nav-link" data-target="manage-page" id="nav-manage">Manage Directory</button>
+      </nav>
+
+      <!-- Mobile Menu Toggle Button -->
+      <button class="menu-toggle" id="menu-toggle" aria-label="Toggle Navigation Menu">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile Drawer Navigation -->
+  <div class="mobile-drawer" id="mobile-drawer">
+    <nav class="mobile-nav">
+      <button class="mobile-nav-link active" data-target="list-page" id="mob-nav-list">Find Donors</button>
+      <button class="mobile-nav-link" data-target="register-page" id="mob-nav-register">Register Donor</button>
+      <button class="mobile-nav-link" data-target="manage-page" id="mob-nav-manage">Manage Directory</button>
+    </nav>
+  </div>
+  <div class="drawer-overlay" id="drawer-overlay"></div>
+
+  <!-- Main Content Container -->
+  <main class="main-content">
+    
+    <!-- Stats Cards Panel (Always visible at the top to summarize records) -->
+    <section class="stats-panel">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon-wrapper blue">
+            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="stat-info">
+            <h3 id="stat-total-donors">0</h3>
+            <p>Total Registered Donors</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon-wrapper green">
+            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div class="stat-info">
+            <h3 id="stat-eligible-donors">0</h3>
+            <p>Eligible to Donate (Now)</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon-wrapper amber">
+            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="stat-info">
+            <h3 id="stat-resting-donors">0</h3>
+            <p>Resting / In Cooldown</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 1: LIST / FIND DONORS PAGE -->
+    <section id="list-page" class="page-view active">
+      <div class="page-header">
+        <div class="page-title-area">
+          <h1>Find Blood Donors</h1>
+          <p>Search and filter donors in real-time. Contact active eligible donors below.</p>
+        </div>
+      </div>
+
+      <!-- Filter Controls Panel -->
+      <div class="filter-controls">
+        <div class="search-box-wrapper">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="search-input" placeholder="Search donors by name or phone..." aria-label="Search donors by name or phone">
+        </div>
+
+        <div class="blood-group-filter-wrapper">
+          <span class="filter-label">Filter Blood Group:</span>
+          <div class="blood-pills" id="blood-pills-list">
+            <button class="blood-pill active" data-group="all" id="pill-all">All</button>
+            <button class="blood-pill" data-group="A+">A+</button>
+            <button class="blood-pill" data-group="A-">A-</button>
+            <button class="blood-pill" data-group="B+">B+</button>
+            <button class="blood-pill" data-group="B-">B-</button>
+            <button class="blood-pill" data-group="AB+">AB+</button>
+            <button class="blood-pill" data-group="AB-">AB-</button>
+            <button class="blood-pill" data-group="O+">O+</button>
+            <button class="blood-pill" data-group="O-">O-</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Donors Cards Grid -->
+      <div class="donors-grid" id="donors-grid">
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Fetching donors...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 2: REGISTER / ADD DONOR PAGE -->
+    <section id="register-page" class="page-view">
+      <div class="page-header">
+        <div class="page-title-area">
+          <h1>Register New Donor</h1>
+          <p>Join the registry to save lives. Fill in the details to add a new donor profile.</p>
+        </div>
+      </div>
+
+      <div class="form-container">
+        <form class="glass-form" id="register-donor-form" novalidate>
+          <div class="form-group">
+            <label for="reg-name">Full Name</label>
+            <div class="input-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <input type="text" id="reg-name" required placeholder="e.g. John Doe">
+            </div>
+            <span class="error-message" id="error-reg-name">Please enter a valid full name.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="reg-phone">Phone Number</label>
+            <div class="input-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              <input type="tel" id="reg-phone" required placeholder="e.g. 555-0199 or +1 234 567 890">
+            </div>
+            <span class="error-message" id="error-reg-phone">Please enter a valid phone number.</span>
+          </div>
+
+          <div class="form-group">
+            <label>Blood Group</label>
+            <div class="blood-selection-grid">
+              <label class="blood-radio">
+                <input type="radio" name="reg-blood" value="A+" checked>
+                <span>A+</span>
+              </label>
+              <label class="blood-radio">
+                <input type="radio" name="reg-blood" value="A-">
+                <span>A-</span>
+              </label>
+              <label class="blood-radio">
+                <input type="radio" name="reg-blood" value="B+">
+                <span>B+</span>
+              </label>
+              <label class="blood-radio">
+                <input type="radio" name="reg-blood" value="B-">
+                <span>B-</span>
+              </label>
+              <label class="blood-radio">
+                <input type="radio" name="reg-blood" value="AB+">
+                <span>AB+</span>
+              </label>
+              <label class="blood-radio">
+                <input type="radio" name="reg-blood" value="AB-">
+                <span>AB-</span>
+              </label>
+              <label class="blood-radio">
+                <input type="radio" name="reg-blood" value="O+">
+                <span>O+</span>
+              </label>
+              <label class="blood-radio">
+                <input type="radio" name="reg-blood" value="O-">
+                <span>O-</span>
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" class="submit-btn" id="btn-register-submit">
+            <span>Register Profile</span>
+            <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- PAGE 3: MANAGE / DIRECTORY PAGE -->
+    <section id="manage-page" class="page-view">
+      <div class="page-header">
+        <div class="page-title-area">
+          <h1>Manage Donors</h1>
+          <p>Update donor files, delete obsolete profiles, or log a donation to initiate resting cooldown periods.</p>
+        </div>
+      </div>
+
+      <div class="table-container-wrapper">
+        <div class="table-actions-header">
+          <div class="search-box-wrapper mini">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="manage-search" placeholder="Search by name or phone..." aria-label="Search directory">
+          </div>
+        </div>
+
+        <div class="responsive-table-holder">
+          <table class="manage-table" id="manage-table">
+            <thead>
+              <tr>
+                <th>Blood</th>
+                <th>Donor Name</th>
+                <th>Phone</th>
+                <th>Eligibility Status</th>
+                <th class="actions-col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="manage-table-body">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Edit Donor Dialog / Modal -->
+  <div class="modal-backdrop" id="edit-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Edit Donor Details</h2>
+        <button class="modal-close" id="modal-close" aria-label="Close Modal">&times;</button>
+      </div>
+      <form id="edit-donor-form" class="modal-form" novalidate>
+        <input type="hidden" id="edit-id">
+        
+        <div class="form-group">
+          <label for="edit-name">Full Name</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <input type="text" id="edit-name" required placeholder="e.g. John Doe">
+          </div>
+          <span class="error-message" id="error-edit-name">Name is required.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-phone">Phone Number</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <input type="tel" id="edit-phone" required placeholder="e.g. 555-0199">
+          </div>
+          <span class="error-message" id="error-edit-phone">Phone number is required.</span>
+        </div>
+
+        <div class="form-group">
+          <label>Blood Group</label>
+          <div class="blood-selection-grid modal-grid">
+            <label class="blood-radio">
+              <input type="radio" name="edit-blood" value="A+">
+              <span>A+</span>
+            </label>
+            <label class="blood-radio">
+              <input type="radio" name="edit-blood" value="A-">
+              <span>A-</span>
+            </label>
+            <label class="blood-radio">
+              <input type="radio" name="edit-blood" value="B+">
+              <span>B+</span>
+            </label>
+            <label class="blood-radio">
+              <input type="radio" name="edit-blood" value="B-">
+              <span>B-</span>
+            </label>
+            <label class="blood-radio">
+              <input type="radio" name="edit-blood" value="AB+">
+              <span>AB+</span>
+            </label>
+            <label class="blood-radio">
+              <input type="radio" name="edit-blood" value="AB-">
+              <span>AB-</span>
+            </label>
+            <label class="blood-radio">
+              <input type="radio" name="edit-blood" value="O+">
+              <span>O+</span>
+            </label>
+            <label class="blood-radio">
+              <input type="radio" name="edit-blood" value="O-">
+              <span>O-</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button type="button" class="cancel-btn" id="edit-cancel">Cancel</button>
+          <button type="submit" class="save-btn" id="edit-save-btn">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <div class="footer-content">
+      <p>&copy; 2026 Lifesaver Blood Donation Network. All rights reserved.</p>
+      <p class="footer-subtext">Providing critical donation matching for health systems globally.</p>
+    </div>
+  </footer>
+
+  <!-- App Script -->
+  <script src="app.js"></script>
+</body>
+</html>
