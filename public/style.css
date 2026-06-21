@@ -1399,11 +1399,17 @@ body {
   .donor-card {
     background: white !important;
     border: 1px solid #ccc !important;
-    color: black !important;
     box-shadow: none !important;
     padding: 15px !important;
     page-break-inside: avoid !important;
     border-radius: 8px !important;
+  }
+
+  /* Force all nested text, spans, strong tags, and icons to render in black when printed */
+  .donor-card,
+  .donor-card * {
+    color: black !important;
+    fill: currentColor !important;
   }
 
   .donor-card-header {
