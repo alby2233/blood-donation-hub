@@ -1311,49 +1311,37 @@ body {
   }
 }
 
+/* Screen styles for print-only elements */
+.print-only,
+#print-section {
+  display: none !important;
+}
+
 /* ==========================================================================
    PRINT MEDIA STYLES (Clean PDF Report Output)
    ========================================================================== */
 @media print {
-  /* Redefine theme variables to plain black and white */
-  :root, body {
-    --bg-primary: #ffffff !important;
-    --bg-secondary: #ffffff !important;
-    --bg-surface: #ffffff !important;
-    --border-color: #999999 !important;
-    --text-main: #000000 !important;
-    --text-muted: #333333 !important;
-    --primary: #000000 !important;
-    --primary-glow: transparent !important;
-  }
-
-  /* Hide all design elements: headers, footers, stats panel, filter controls, buttons, table actions, and navigation */
+  /* Hide the rest of the application completely */
   .app-header,
   .app-footer,
-  .stats-panel,
-  .filter-controls,
-  .card-action-row,
-  .action-buttons,
-  .table-actions-header,
-  .desktop-nav,
-  .menu-toggle,
-  .mobile-drawer,
-  .drawer-overlay,
-  .toast-container,
+  .main-content,
   .modal-backdrop,
-  #print-btn,
-  .actions-col,
-  td.actions-col,
-  th.actions-col {
+  .toast-container {
     display: none !important;
   }
 
-  /* Reset layout structure for plain paper margins */
-  html, body {
+  /* Show only the print section */
+  #print-section,
+  .print-only {
+    display: block !important;
     background: #ffffff !important;
-    background-image: none !important;
     color: #000000 !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
     font-size: 11pt !important;
+    line-height: 1.5 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   /* Force ALL text to be solid black and remove backgrounds, box-shadows, and text-shadows */
@@ -1369,192 +1357,44 @@ body {
     color: #000000 !important;
   }
 
-  .main-content {
-    padding: 0 !important;
-    margin: 0 !important;
-    max-width: 100% !important;
-    width: 100% !important;
-  }
-
-  .page-view {
-    display: none !important;
-  }
-
-  /* Override animation to prevent printing elements with opacity: 0 */
-  .page-view.active {
-    display: block !important;
-    animation: none !important;
-    opacity: 1 !important;
-    transform: none !important;
-  }
-
-  .page-header {
-    margin-top: 10px !important;
-    margin-bottom: 20px !important;
+  /* Header styling */
+  .print-header {
     border-bottom: 2px solid #000000 !important;
     padding-bottom: 8px !important;
+    margin-bottom: 20px !important;
   }
 
-  .page-title-area h1 {
+  .print-header h1 {
+    font-size: 20pt !important;
+    font-weight: bold !important;
+    margin: 0 0 6px 0 !important;
     color: #000000 !important;
-    font-size: 18pt !important;
   }
 
-  .page-title-area p {
-    color: #333333 !important;
-    font-size: 10pt !important;
-  }
-
-  /* Active filter notice styled as plain text */
-  #list-page::before {
-    content: "Active Filter: Blood Group [ " attr(data-active-filter) " ]";
-    display: block;
-    font-weight: bold;
-    margin-bottom: 15px;
-    font-size: 10pt;
-    text-transform: uppercase;
-  }
-
-  /* Donors Grid: Render as a clean, single-column vertical list of plain records */
-  .donors-grid {
-    display: block !important;
-    background: transparent !important;
-  }
-
-  /* Strip all card design: no backgrounds, no rounded corners, no padding, no shadows */
-  .donor-card {
-    background: transparent !important;
-    border: none !important;
-    border-bottom: 1px solid #999999 !important; /* simple line separator */
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    padding: 12px 0 !important;
-    margin-bottom: 0 !important;
+  /* Plain unstyled list elements */
+  .print-donor-record {
     page-break-inside: avoid !important;
-    display: block !important;
-    transition: none !important;
-    transform: none !important;
+    margin-bottom: 12px !important;
   }
 
-  .donor-card-header {
-    margin-bottom: 6px !important;
-    display: flex !important;
-    justify-content: flex-start !important;
-    align-items: center !important;
-    gap: 15px !important;
-  }
-
-  /* Strip blood badge circle design - make it plain bold text */
-  .donor-group-badge {
-    background: transparent !important;
-    border: none !important;
-    color: #000000 !important;
-    font-weight: bold !important;
-    font-size: 11pt !important;
-    width: auto !important;
-    height: auto !important;
-    border-radius: 0 !important;
-    display: inline !important;
-  }
-  .donor-group-badge::before {
-    content: "Blood Group: ";
-    font-weight: normal;
-  }
-
-  /* Strip status badge style - make it plain text in parentheses */
-  .status-badge {
-    background: transparent !important;
-    border: none !important;
-    color: #333333 !important;
-    font-size: 9pt !important;
-    padding: 0 !important;
-    border-radius: 0 !important;
-    display: inline !important;
-    text-transform: capitalize !important;
-    font-weight: bold !important;
-  }
-  .status-badge::before {
-    content: "(Status: ";
-    font-weight: normal;
-  }
-  .status-badge::after {
-    content: ")";
-    font-weight: normal;
-  }
-
-  .donor-card-body {
-    display: block !important;
-    margin-bottom: 6px !important;
-  }
-
-  .donor-card-body h2 {
+  .print-donor-record h3 {
     font-size: 13pt !important;
     font-weight: bold !important;
-    margin-bottom: 4px !important;
+    margin: 0 0 6px 0 !important;
     color: #000000 !important;
   }
 
-  .donor-card-body p {
+  .print-donor-record p {
     font-size: 10pt !important;
     margin: 3px 0 !important;
-    display: block !important;
     color: #000000 !important;
   }
-  
-  /* Hide SVG icons for a pure text list */
-  .phone-icon,
-  .donor-card-body svg {
-    display: none !important;
-  }
 
-  /* Add plain text prefix for phone */
-  .donor-card-body p:nth-of-type(1)::before {
-    content: "Phone: ";
-    font-weight: bold;
-  }
-
-  .donor-card-footer {
-    border: none !important;
-    padding-top: 0 !important;
-    color: #555555 !important;
-    font-size: 9pt !important;
-  }
-
-  /* Plain unstyled table layout for printing from Directory view */
-  .manage-table {
-    display: table !important;
-    border-collapse: collapse !important;
-    width: 100% !important;
-    margin-top: 15px !important;
-  }
-
-  .manage-table thead {
-    display: table-header-group !important;
-  }
-
-  .manage-table tr {
-    display: table-row !important;
-    border-bottom: 1px solid #333333 !important;
-    background: transparent !important;
-  }
-
-  .manage-table th, .manage-table td {
-    display: table-cell !important;
-    padding: 6px 10px !important;
+  .print-separator {
     border: none !important;
     border-bottom: 1px solid #999999 !important;
-    text-align: left !important;
-    color: #000000 !important;
-  }
-  
-  .table-blood-badge {
-    background: transparent !important;
-    border: none !important;
-    width: auto !important;
-    height: auto !important;
-    border-radius: 0 !important;
-    display: inline !important;
-    font-weight: bold !important;
-    color: #000000 !important;
+    margin: 12px 0 !important;
+    display: block !important;
   }
 }
+

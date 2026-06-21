@@ -7,6 +7,15 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
+
+// Cache-Control middleware to prevent caching index.html
+app.use((req, res, next) => {
+  if (req.path === '/' || req.path === '/index.html') {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  }
+  next();
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Helper to validate donor input
@@ -110,6 +119,9 @@ app.post('/api/donors/:id/donate', async (req, res) => {
 
 // Catch-all route to serve SPA
 app.get('*', (req, res) => {
+  if (path.extname(req.path)) {
+    return res.status(404).send('Not Found');
+  }
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
