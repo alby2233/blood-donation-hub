@@ -90,11 +90,19 @@
 
     <!-- PAGE 1: LIST / FIND DONORS PAGE -->
     <section id="list-page" class="page-view active">
-      <div class="page-header">
+      <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
         <div class="page-title-area">
           <h1>Find Blood Donors</h1>
           <p>Search and filter donors in real-time. Contact active eligible donors below.</p>
         </div>
+        <button class="submit-btn" id="print-btn" style="padding: 10px 20px; font-size: 0.95rem; background-color: var(--accent-blue); box-shadow: 0 4px 10px var(--accent-blue-glow);">
+          <svg style="width:16px;height:16px;margin-right:8px;vertical-align:middle;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+          <span>Print Registry</span>
+        </button>
       </div>
 
       <!-- Filter Controls Panel -->
@@ -156,6 +164,14 @@
               <input type="tel" id="reg-phone" required placeholder="e.g. 555-0199 or +1 234 567 890">
             </div>
             <span class="error-message" id="error-reg-phone">Please enter a valid phone number.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="reg-unit">Unit No.</label>
+            <div class="input-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              <input type="text" id="reg-unit" placeholder="e.g. 1, 2, or 350ml">
+            </div>
           </div>
 
           <div class="form-group">
@@ -228,6 +244,7 @@
                 <th>Blood</th>
                 <th>Donor Name</th>
                 <th>Phone</th>
+                <th>Unit No.</th>
                 <th>Eligibility Status</th>
                 <th class="actions-col">Actions</th>
               </tr>
@@ -268,6 +285,14 @@
             <input type="tel" id="edit-phone" required placeholder="e.g. 555-0199">
           </div>
           <span class="error-message" id="error-edit-phone">Phone number is required.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-unit">Unit No.</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <input type="text" id="edit-unit" placeholder="e.g. 1, 2, or 350ml">
+          </div>
         </div>
 
         <div class="form-group">

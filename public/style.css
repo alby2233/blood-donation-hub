@@ -1310,3 +1310,167 @@ body {
     flex: 1;
   }
 }
+
+/* ==========================================================================
+   PRINT MEDIA STYLES (Clean PDF Report Output)
+   ========================================================================== */
+@media print {
+  /* Hide all UI interactable elements and layout headers */
+  .app-header, 
+  .app-footer, 
+  .stats-panel, 
+  .filter-controls, 
+  .card-action-row, 
+  .action-buttons, 
+  .table-actions-header, 
+  .menu-toggle,
+  .mobile-drawer,
+  .drawer-overlay,
+  .toast-container,
+  .modal-backdrop,
+  #print-btn {
+    display: none !important;
+  }
+
+  /* Reset layout structure for plain paper margins */
+  body {
+    background: white !important;
+    background-image: none !important;
+    color: black !important;
+    font-size: 11pt !important;
+  }
+
+  .main-content {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .page-view {
+    display: none !important;
+  }
+
+  .page-view.active {
+    display: block !important;
+  }
+
+  .page-header {
+    margin-bottom: 20px !important;
+    border-bottom: 2px solid #333 !important;
+    padding-bottom: 10px !important;
+  }
+
+  .page-title-area h1 {
+    color: #cc0000 !important; /* Visual contrast */
+    font-size: 24pt !important;
+  }
+
+  .page-title-area p {
+    color: #555 !important;
+    font-size: 11pt !important;
+  }
+  
+  /* Add dynamic active filter print notice */
+  #list-page::before {
+    content: "Active Filter: Blood Group [ " attr(data-active-filter) " ]";
+    display: block;
+    font-weight: bold;
+    margin-bottom: 15px;
+    font-size: 12pt;
+    text-transform: uppercase;
+    color: #444;
+  }
+
+  /* Donors Grid Layout formatting for print */
+  .donors-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important; /* Stack neatly side by side */
+    gap: 15px !important;
+    background: transparent !important;
+  }
+
+  .donor-card {
+    background: white !important;
+    border: 1px solid #ccc !important;
+    color: black !important;
+    box-shadow: none !important;
+    padding: 15px !important;
+    page-break-inside: avoid !important;
+    border-radius: 8px !important;
+  }
+
+  .donor-card-header {
+    margin-bottom: 8px !important;
+  }
+
+  .donor-group-badge {
+    background: #f0f0f0 !important;
+    color: black !important;
+    border: 1.5px solid black !important;
+    box-shadow: none !important;
+    font-size: 11pt !important;
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .status-badge {
+    background: transparent !important;
+    border: 1px solid #777 !important;
+    color: black !important;
+    font-size: 8pt !important;
+  }
+
+  .status-badge.eligible {
+    border-color: green !important;
+    color: green !important;
+  }
+
+  .status-badge.resting {
+    border-color: orange !important;
+    color: orange !important;
+  }
+
+  .donor-card-body h2 {
+    font-size: 14pt !important;
+    color: black !important;
+    margin-bottom: 4px !important;
+  }
+
+  .donor-card-body p {
+    color: #333 !important;
+    font-size: 10pt !important;
+  }
+
+  .donor-card-footer {
+    border-top: 1px dashed #ccc !important;
+    padding-top: 8px !important;
+    color: #555 !important;
+    font-size: 9pt !important;
+  }
+
+  /* Manage Table print layout rules */
+  .manage-table {
+    display: table !important; /* Ensure table remains a table when printing */
+    border: 1px solid #ccc !important;
+    width: 100% !important;
+  }
+
+  .manage-table thead {
+    display: table-header-group !important;
+  }
+
+  .manage-table tr {
+    display: table-row !important;
+    border-bottom: 1px solid #ccc !important;
+    background-color: transparent !important;
+  }
+
+  .manage-table th, .manage-table td {
+    display: table-cell !important;
+    color: black !important;
+    padding: 8px 12px !important;
+    border-bottom: 1px solid #ccc !important;
+    text-align: left !important;
+  }
+}

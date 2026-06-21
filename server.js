@@ -11,7 +11,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Helper to validate donor input
 function validateDonorInput(req, res, next) {
-  const { name, phone, bloodGroup } = req.body;
+  const { name, phone, bloodGroup, unitNo } = req.body;
   
   if (!name || typeof name !== 'string' || name.trim().length === 0) {
     return res.status(400).json({ error: 'Name is required and must be a valid string' });
@@ -32,7 +32,8 @@ function validateDonorInput(req, res, next) {
   req.cleanedBody = {
     name: name.trim(),
     phone: phone.trim(),
-    bloodGroup: formattedBloodGroup
+    bloodGroup: formattedBloodGroup,
+    unitNo: unitNo ? String(unitNo).trim() : ''
   };
   
   next();

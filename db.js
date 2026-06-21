@@ -2,11 +2,12 @@ const mongoose = require('mongoose');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/blood_donation_hub';
 
-// Define Mongoose Schema
+// Define Mongoose Schema with the new unitNo field
 const donorSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   phone: { type: String, required: true, trim: true },
   bloodGroup: { type: String, required: true, uppercase: true, trim: true },
+  unitNo: { type: String, default: '' }, // New field representing donated unit numbers
   lastDonated: { type: Date, default: null }
 }, {
   timestamps: true
@@ -22,6 +23,7 @@ function formatDonor(doc) {
     name: doc.name,
     phone: doc.phone,
     bloodGroup: doc.bloodGroup,
+    unitNo: doc.unitNo || '',
     lastDonated: doc.lastDonated ? doc.lastDonated.toISOString() : null
   };
 }
@@ -53,20 +55,20 @@ async function getDonors() {
 }
 
 // Add a donor
-async function addDonor({ name, phone, bloodGroup }) {
-  const donor = new Donor({ name, phone, bloodGroup });
+async function addDonor({ name, phone, bloodGroup, unitNo }) {
+  const donor = new Donor({ name, phone, bloodGroup, unitNo });
   await donor.save();
   return formatDonor(donor);
 }
 
 // Update a donor
-async function updateDonor(id, { name, phone, bloodGroup }) {
+async function updateDonor(id, { name, phone, bloodGroup, unitNo }) {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error(`Donor with ID ${id} not found`);
   }
   const donor = await Donor.findByIdAndUpdate(
     id, 
-    { name, phone, bloodGroup }, 
+    { name, phone, bloodGroup, unitNo }, 
     { new: true, runValidators: true }
   );
   if (!donor) {

@@ -114,6 +114,14 @@ function setupEventListeners() {
     }
   });
 
+  // Print Button trigger
+  const printBtn = document.getElementById('print-btn');
+  if (printBtn) {
+    printBtn.addEventListener('click', () => {
+      window.print();
+    });
+  }
+
   // Forms Hook (rebind triggers on dynamic page updates)
   bindFormSubmissions();
 
@@ -166,9 +174,11 @@ function switchView(targetViewId) {
   });
 
   const activePage = document.getElementById(targetViewId);
-  activePage.classList.add('active');
+  if (activePage) {
+    activePage.classList.add('active');
+  }
 
-  // Trigger Renders directly (no login check barrier)
+  // Trigger Renders directly
   if (targetViewId === 'list-page') renderDonorsGrid();
   if (targetViewId === 'manage-page') renderManageTable();
   
@@ -330,6 +340,12 @@ function renderDonorsGrid() {
     return;
   }
 
+  // Set page attribute for printing list details (prints the active blood group filter)
+  const listPage = document.getElementById('list-page');
+  if (listPage) {
+    listPage.setAttribute('data-active-filter', state.currentFilter);
+  }
+
   filtered.forEach(donor => {
     const eligibility = calculateEligibility(donor.lastDonated);
     const card = document.createElement('div');
@@ -350,6 +366,14 @@ function renderDonorsGrid() {
           </svg>
           ${escapeHtml(donor.phone)}
         </p>
+        ${donor.unitNo ? `
+          <p style="margin-top: 6px;">
+            <svg class="phone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            Unit No: <strong>${escapeHtml(donor.unitNo)}</strong>
+          </p>
+        ` : ''}
       </div>
       <div class="donor-card-footer">
         ${eligibility.eligible 
@@ -390,7 +414,7 @@ function renderManageTable(searchQuery = '') {
   if (filtered.length === 0) {
     tableBody.innerHTML = `
       <tr>
-        <td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">
+        <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">
           No registered donors found matching the query.
         </td>
       </tr>
@@ -408,6 +432,7 @@ function renderManageTable(searchQuery = '') {
       </td>
       <td class="donor-name" data-label="Donor Name">${escapeHtml(donor.name)}</td>
       <td class="phone-cell" data-label="Phone">${escapeHtml(donor.phone)}</td>
+      <td data-label="Unit No.">${escapeHtml(donor.unitNo || '-')}</td>
       <td data-label="Eligibility Status">
         <span class="status-badge ${eligibility.eligible ? 'eligible' : 'resting'}">
           ${eligibility.text}
@@ -456,6 +481,7 @@ async function handleRegisterSubmit(e) {
   
   const nameInput = document.getElementById('reg-name');
   const phoneInput = document.getElementById('reg-phone');
+  const unitInput = document.getElementById('reg-unit');
   const bloodGroupRadio = document.querySelector('input[name="reg-blood"]:checked');
 
   if (!nameInput || !phoneInput || !bloodGroupRadio) return;
@@ -482,7 +508,8 @@ async function handleRegisterSubmit(e) {
   const payload = {
     name: nameInput.value,
     phone: phoneInput.value,
-    bloodGroup: bloodGroupRadio.value
+    bloodGroup: bloodGroupRadio.value,
+    unitNo: unitInput ? unitInput.value.trim() : ''
   };
 
   try {
@@ -516,6 +543,7 @@ async function handleEditSubmit(e) {
   const id = document.getElementById('edit-id').value;
   const nameInput = document.getElementById('edit-name');
   const phoneInput = document.getElementById('edit-phone');
+  const unitInput = document.getElementById('edit-unit');
   const bloodGroupRadio = document.querySelector('input[name="edit-blood"]:checked');
 
   if (!nameInput || !phoneInput || !bloodGroupRadio) return;
@@ -540,7 +568,8 @@ async function handleEditSubmit(e) {
   const payload = {
     name: nameInput.value,
     phone: phoneInput.value,
-    bloodGroup: bloodGroupRadio.value
+    bloodGroup: bloodGroupRadio.value,
+    unitNo: unitInput ? unitInput.value.trim() : ''
   };
 
   try {
@@ -603,6 +632,7 @@ function openEditModal(donor) {
   document.getElementById('edit-id').value = donor.id;
   document.getElementById('edit-name').value = donor.name;
   document.getElementById('edit-phone').value = donor.phone;
+  document.getElementById('edit-unit').value = donor.unitNo || "";
 
   // Check the corresponding blood group radio button
   const radios = document.getElementsByName('edit-blood');
