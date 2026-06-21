@@ -14,46 +14,6 @@ const donorSchema = new mongoose.Schema({
 
 const Donor = mongoose.model('Donor', donorSchema);
 
-// Initial Mock Donors to seed when database is empty
-const seedDonors = [
-  {
-    name: "John Doe",
-    phone: "555-0199",
-    bloodGroup: "O+",
-    lastDonated: null
-  },
-  {
-    name: "Sarah Jenkins",
-    phone: "555-0123",
-    bloodGroup: "A-",
-    lastDonated: new Date("2026-05-15T12:00:00.000Z")
-  },
-  {
-    name: "Michael Chang",
-    phone: "555-0145",
-    bloodGroup: "B+",
-    lastDonated: new Date("2025-11-20T10:00:00.000Z")
-  },
-  {
-    name: "Emily Rodriguez",
-    phone: "555-0177",
-    bloodGroup: "AB+",
-    lastDonated: null
-  },
-  {
-    name: "David Kim",
-    phone: "555-0188",
-    bloodGroup: "O-",
-    lastDonated: new Date("2026-06-10T14:30:00.000Z")
-  },
-  {
-    name: "Lisa Watson",
-    phone: "555-0155",
-    bloodGroup: "A+",
-    lastDonated: new Date("2026-02-18T09:00:00.000Z")
-  }
-];
-
 // Helper to format Mongoose document keys to match frontend expectation (converting _id to id string)
 function formatDonor(doc) {
   if (!doc) return null;
@@ -72,14 +32,6 @@ async function connectDB() {
     console.log('Connecting to MongoDB...');
     await mongoose.connect(MONGODB_URI);
     console.log('MongoDB connection established successfully.');
-
-    // Seed database if empty
-    const count = await Donor.countDocuments();
-    if (count === 0) {
-      console.log('Registry is empty. Seeding initial donor profiles...');
-      await Donor.insertMany(seedDonors);
-      console.log('Database seeded successfully.');
-    }
   } catch (error) {
     console.error('CRITICAL: Failed to connect to MongoDB.');
     console.error(error.message);

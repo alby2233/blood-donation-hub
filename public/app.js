@@ -6,12 +6,8 @@ const state = {
   currentFilter: 'all',
   searchQuery: '',
   activeView: 'list-page',
-  isAdmin: false,
   editingDonorId: null
 };
-
-// Owner PIN for administrative features
-const OWNER_PIN = '1234';
 
 // ==========================================================================
 // DOM ELEMENTS
@@ -58,10 +54,6 @@ const editCancel = document.getElementById('edit-cancel');
 // INITIALIZATION
 // ==========================================================================
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize Admin Authentication State
-  state.isAdmin = localStorage.getItem('blood_registry_admin') === 'true';
-  updateHeaderAdminState();
-
   // Load Initial Donors Data
   fetchDonors();
 
@@ -103,9 +95,11 @@ function setupEventListeners() {
     renderDonorsGrid();
   });
 
-  manageSearchInput.addEventListener('input', (e) => {
-    renderManageTable(e.target.value.toLowerCase().trim());
-  });
+  if (manageSearchInput) {
+    manageSearchInput.addEventListener('input', (e) => {
+      renderManageTable(e.target.value.toLowerCase().trim());
+    });
+  }
 
   // Blood Pills Filter
   bloodPillsContainer.addEventListener('click', (e) => {
@@ -120,11 +114,8 @@ function setupEventListeners() {
     }
   });
 
-  // Register Donor Form Submission
-  registerForm.addEventListener('submit', handleRegisterSubmit);
-
-  // Edit Donor Form Submission
-  editForm.addEventListener('submit', handleEditSubmit);
+  // Forms Hook (rebind triggers on dynamic page updates)
+  bindFormSubmissions();
 
   // Modal Closures
   modalClose.addEventListener('click', closeEditModal);
@@ -134,8 +125,21 @@ function setupEventListeners() {
   });
 }
 
+function bindFormSubmissions() {
+  const regForm = document.getElementById('register-donor-form');
+  if (regForm) {
+    regForm.removeEventListener('submit', handleRegisterSubmit);
+    regForm.addEventListener('submit', handleRegisterSubmit);
+  }
+  const edForm = document.getElementById('edit-donor-form');
+  if (edForm) {
+    edForm.removeEventListener('submit', handleEditSubmit);
+    edForm.addEventListener('submit', handleEditSubmit);
+  }
+}
+
 // ==========================================================================
-// VIEW ROUTING & AUTH LOCK SCREEN
+// VIEW ROUTING
 // ==========================================================================
 function switchView(targetViewId) {
   state.activeView = targetViewId;
@@ -164,210 +168,11 @@ function switchView(targetViewId) {
   const activePage = document.getElementById(targetViewId);
   activePage.classList.add('active');
 
-  // If selecting administrative views without being logged in, render the login card overlay
-  if ((targetViewId === 'register-page' || targetViewId === 'manage-page') && !state.isAdmin) {
-    renderLockScreen(activePage, targetViewId);
-  } else {
-    // Normal render
-    if (targetViewId === 'list-page') renderDonorsGrid();
-    if (targetViewId === 'manage-page') renderManageTable();
-  }
-}
-
-// Renders glassmorphic password prompt when a non-owner tries to manage data
-function renderLockScreen(containerElement, targetViewId) {
-  // Clear any existing content inside form container or table container, show auth prompt
-  containerElement.innerHTML = `
-    <div class="form-container" style="animation: fadeIn 0.3s ease;">
-      <div class="glass-form" style="text-align: center;">
-        <div style="background-color: var(--primary-glow); color: var(--primary); width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
-          <svg style="width: 32px; height: 32px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
-        </div>
-        <h2 style="font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 8px;">Owner Authentication</h2>
-        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 24px;">This view is restricted to site owners/administrators. Please input your secure PIN to access this section.</p>
-        
-        <div class="form-group" style="text-align: left; margin-bottom: 20px;">
-          <label for="owner-pin-input">Enter Owner PIN</label>
-          <div class="input-wrapper">
-            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
-            </svg>
-            <input type="password" id="owner-pin-input" placeholder="••••" style="letter-spacing: 0.2em;">
-          </div>
-          <span class="error-message" id="owner-pin-error" style="color: var(--primary); font-size: 0.8rem; font-weight: 500; margin-top: 6px;">Incorrect PIN code. Please try again.</span>
-        </div>
-
-        <button type="button" class="submit-btn" id="btn-owner-auth" style="width: 100%;">
-          <span>Unlock Page</span>
-        </button>
-      </div>
-    </div>
-  `;
-
-  const pinInput = document.getElementById('owner-pin-input');
-  const errorMsg = document.getElementById('owner-pin-error');
-  const authBtn = document.getElementById('btn-owner-auth');
-
-  // Trigger login trigger on button click or Enter keypress
-  const attemptLogin = () => {
-    if (pinInput.value === OWNER_PIN) {
-      state.isAdmin = true;
-      localStorage.setItem('blood_registry_admin', 'true');
-      updateHeaderAdminState();
-      showToast('Owner access granted successfully.', 'success');
-      restorePageView(containerElement, targetViewId);
-    } else {
-      errorMsg.style.display = 'block';
-      pinInput.value = '';
-      pinInput.focus();
-      showToast('Invalid passcode.', 'error');
-    }
-  };
-
-  authBtn.addEventListener('click', attemptLogin);
-  pinInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') attemptLogin();
-  });
-}
-
-// Restore HTML to its full static version once logged in
-function restorePageView(containerElement, targetViewId) {
-  if (targetViewId === 'register-page') {
-    containerElement.innerHTML = `
-      <div class="page-header">
-        <div class="page-title-area">
-          <h1>Register New Donor</h1>
-          <p>Join the registry to save lives. Fill in the details to add a new donor profile.</p>
-        </div>
-      </div>
-      <div class="form-container">
-        <form class="glass-form" id="register-donor-form" novalidate>
-          <div class="form-group">
-            <label for="reg-name">Full Name</label>
-            <div class="input-wrapper">
-              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              <input type="text" id="reg-name" required placeholder="e.g. John Doe">
-            </div>
-            <span class="error-message" id="error-reg-name">Please enter a valid full name.</span>
-          </div>
-
-          <div class="form-group">
-            <label for="reg-phone">Phone Number</label>
-            <div class="input-wrapper">
-              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-              <input type="tel" id="reg-phone" required placeholder="e.g. 555-0199">
-            </div>
-            <span class="error-message" id="error-reg-phone">Please enter a valid phone number.</span>
-          </div>
-
-          <div class="form-group">
-            <label>Blood Group</label>
-            <div class="blood-selection-grid">
-              <label class="blood-radio"><input type="radio" name="reg-blood" value="A+" checked><span>A+</span></label>
-              <label class="blood-radio"><input type="radio" name="reg-blood" value="A-"><span>A-</span></label>
-              <label class="blood-radio"><input type="radio" name="reg-blood" value="B+"><span>B+</span></label>
-              <label class="blood-radio"><input type="radio" name="reg-blood" value="B-"><span>B-</span></label>
-              <label class="blood-radio"><input type="radio" name="reg-blood" value="AB+"><span>AB+</span></label>
-              <label class="blood-radio"><input type="radio" name="reg-blood" value="AB-"><span>AB-</span></label>
-              <label class="blood-radio"><input type="radio" name="reg-blood" value="O+"><span>O+</span></label>
-              <label class="blood-radio"><input type="radio" name="reg-blood" value="O-"><span>O-</span></label>
-            </div>
-          </div>
-
-          <button type="submit" class="submit-btn" id="btn-register-submit">
-            <span>Register Profile</span>
-            <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-          </button>
-        </form>
-      </div>
-    `;
-    // Rebind submit listener
-    document.getElementById('register-donor-form').addEventListener('submit', handleRegisterSubmit);
-  } else if (targetViewId === 'manage-page') {
-    containerElement.innerHTML = `
-      <div class="page-header">
-        <div class="page-title-area">
-          <h1>Manage Donors</h1>
-          <p>Update donor files, delete obsolete profiles, or log a donation to initiate resting cooldown periods.</p>
-        </div>
-      </div>
-      <div class="table-container-wrapper">
-        <div class="table-actions-header">
-          <div class="search-box-wrapper mini">
-            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="manage-search" placeholder="Search by name or phone..." aria-label="Search directory">
-          </div>
-        </div>
-        <div class="responsive-table-holder">
-          <table class="manage-table" id="manage-table">
-            <thead>
-              <tr>
-                <th>Blood</th>
-                <th>Donor Name</th>
-                <th>Phone</th>
-                <th>Eligibility Status</th>
-                <th class="actions-col">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="manage-table-body"></tbody>
-          </table>
-        </div>
-      </div>
-    `;
-    // Rebind search listener
-    document.getElementById('manage-search').addEventListener('input', (e) => {
-      renderManageTable(e.target.value.toLowerCase().trim());
-    });
-    renderManageTable();
-  }
-}
-
-// Modifies the navigation layout to include visual login/logout button
-function updateHeaderAdminState() {
-  const desktopNav = document.querySelector('.desktop-nav');
-  const mobileNav = document.querySelector('.mobile-nav');
-
-  // Check if logout button already exists
-  const existingLogoutDesktop = document.getElementById('nav-logout-btn');
-  const existingLogoutMobile = document.getElementById('mob-logout-btn');
-
-  if (state.isAdmin) {
-    if (!existingLogoutDesktop) {
-      const logoutBtn = document.createElement('button');
-      logoutBtn.className = 'nav-link';
-      logoutBtn.id = 'nav-logout-btn';
-      logoutBtn.style.color = 'var(--primary)';
-      logoutBtn.style.fontWeight = 'bold';
-      logoutBtn.textContent = 'Owner Logout';
-      logoutBtn.addEventListener('click', handleLogout);
-      desktopNav.appendChild(logoutBtn);
-    }
-    if (!existingLogoutMobile) {
-      const logoutBtnMob = document.createElement('button');
-      logoutBtnMob.className = 'mobile-nav-link';
-      logoutBtnMob.id = 'mob-logout-btn';
-      logoutBtnMob.style.color = 'var(--primary)';
-      logoutBtnMob.style.fontWeight = 'bold';
-      logoutBtnMob.textContent = 'Owner Logout';
-      logoutBtnMob.addEventListener('click', handleLogout);
-      mobileNav.appendChild(logoutBtnMob);
-    }
-  } else {
-    if (existingLogoutDesktop) existingLogoutDesktop.remove();
-    if (existingLogoutMobile) existingLogoutMobile.remove();
-  }
-}
-
-function handleLogout() {
-  state.isAdmin = false;
-  localStorage.removeItem('blood_registry_admin');
-  updateHeaderAdminState();
-  showToast('Logged out of owner portal.', 'success');
-  // Redirect to list page
-  switchView('list-page');
+  // Trigger Renders directly (no login check barrier)
+  if (targetViewId === 'list-page') renderDonorsGrid();
+  if (targetViewId === 'manage-page') renderManageTable();
+  
+  bindFormSubmissions();
 }
 
 // ==========================================================================
@@ -405,7 +210,7 @@ async function fetchDonors() {
     updateCounters();
     
     if (state.activeView === 'list-page') renderDonorsGrid();
-    if (state.activeView === 'manage-page' && state.isAdmin) renderManageTable();
+    if (state.activeView === 'manage-page') renderManageTable();
   } catch (error) {
     console.error(error);
     showToast(error.message, 'error');
@@ -437,7 +242,6 @@ function calculateEligibility(lastDonatedIsoString) {
   
   // Calculate relative months remaining
   const diffMonths = Math.ceil(diffDays / 30);
-  const monthText = diffMonths === 1 ? '1 month' : `${diffMonths} months`;
   const dayText = diffDays === 1 ? '1 day' : `${diffDays} days`;
 
   return {
@@ -553,11 +357,21 @@ function renderDonorsGrid() {
           : `Resting. Available on <strong>${eligibility.eligibleDateString}</strong>.`
         }
       </div>
-      <a href="tel:${donor.phone}" class="card-call-btn">
-        <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15.05 5A5 5 0 0 1 19 8.95M15.05 1A9 9 0 0 1 23 8.94m-1 7.98v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        <span>Call Contact</span>
-      </a>
+      <div class="card-action-row" style="display: flex; gap: 8px; margin-top: 12px; width: 100%;">
+        <a href="tel:${donor.phone}" class="card-call-btn" style="flex: 1; margin: 0; justify-content: center;">
+          <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15.05 5A5 5 0 0 1 19 8.95M15.05 1A9 9 0 0 1 23 8.94m-1 7.98v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          <span>Call</span>
+        </a>
+        <button class="btn-table btn-delete card-delete-btn" style="flex: 1; justify-content: center; height: 38px; font-size: 0.9rem; padding: 0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+          <span>Delete</span>
+        </button>
+      </div>
     `;
+
+    // Bind card action events
+    card.querySelector('.card-delete-btn').addEventListener('click', () => confirmDeleteDonor(donor));
+
     donorsGrid.appendChild(card);
   });
 }
@@ -644,6 +458,8 @@ async function handleRegisterSubmit(e) {
   const phoneInput = document.getElementById('reg-phone');
   const bloodGroupRadio = document.querySelector('input[name="reg-blood"]:checked');
 
+  if (!nameInput || !phoneInput || !bloodGroupRadio) return;
+
   // Client side validation
   let hasError = false;
   
@@ -701,6 +517,8 @@ async function handleEditSubmit(e) {
   const nameInput = document.getElementById('edit-name');
   const phoneInput = document.getElementById('edit-phone');
   const bloodGroupRadio = document.querySelector('input[name="edit-blood"]:checked');
+
+  if (!nameInput || !phoneInput || !bloodGroupRadio) return;
 
   let hasError = false;
   if (!nameInput.value.trim()) {
