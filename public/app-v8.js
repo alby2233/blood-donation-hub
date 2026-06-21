@@ -62,6 +62,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Periodically sync the donor list in the background every 8 seconds for multi-device live loading
   setInterval(fetchDonors, 8000);
+
+  // Register PWA Service Worker for offline install capability
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('Service Worker registered successfully:', reg.scope))
+      .catch(err => console.log('Service Worker registration failed:', err));
+  }
 });
 
 // ==========================================================================
