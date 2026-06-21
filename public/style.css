@@ -1315,35 +1315,37 @@ body {
    PRINT MEDIA STYLES (Clean PDF Report Output)
    ========================================================================== */
 @media print {
-  /* Hide all UI interactable elements, layout headers, and donation eligibility details */
-  .app-header, 
-  .app-footer, 
-  .stats-panel, 
-  .filter-controls, 
-  .card-action-row, 
-  .action-buttons, 
-  .table-actions-header, 
+  /* Hide ONLY pure UI controls that make no sense on printed paper */
+  .desktop-nav,
   .menu-toggle,
   .mobile-drawer,
   .drawer-overlay,
   .toast-container,
   .modal-backdrop,
-  .status-badge,
-  .donor-card-footer,
-  .manage-table th:nth-child(5),
-  .manage-table td:nth-child(5),
-  .manage-table th.actions-col,
-  .manage-table td.actions-col,
   #print-btn {
     display: none !important;
   }
 
   /* Reset layout structure for plain paper margins */
-  body {
-    background: white !important;
+  html, body {
+    background: #ffffff !important;
     background-image: none !important;
-    color: black !important;
+    color: #111111 !important;
     font-size: 11pt !important;
+  }
+
+  .app-header {
+    background: transparent !important;
+    border-bottom: 2px solid #333 !important;
+    padding: 10px 0 !important;
+  }
+
+  .brand-logo {
+    color: #cc0000 !important;
+  }
+  
+  .brand-logo span {
+    color: #111111 !important;
   }
 
   .main-content {
@@ -1357,33 +1359,118 @@ body {
     display: none !important;
   }
 
+  /* Override animation to prevent printing elements with opacity: 0 */
   .page-view.active {
     display: block !important;
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 
   .page-header {
+    margin-top: 20px !important;
     margin-bottom: 20px !important;
-    border-bottom: 2px solid #333 !important;
+    border-bottom: 1px solid #ccc !important;
     padding-bottom: 10px !important;
   }
 
   .page-title-area h1 {
-    color: #cc0000 !important; /* Visual contrast */
-    font-size: 24pt !important;
+    color: #cc0000 !important;
+    font-size: 20pt !important;
   }
 
   .page-title-area p {
     color: #555 !important;
-    font-size: 11pt !important;
+    font-size: 10pt !important;
   }
-  
+
+  /* Stats grid printing */
+  .stats-panel {
+    display: block !important;
+    margin-bottom: 20px !important;
+  }
+  .stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 12px !important;
+  }
+  .stat-card {
+    background: #f9f9f9 !important;
+    border: 1px solid #ddd !important;
+    color: #111 !important;
+    box-shadow: none !important;
+    padding: 10px 15px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    border-radius: 6px !important;
+  }
+  .stat-icon-wrapper {
+    background: #e9e9e9 !important;
+    color: #333 !important;
+    width: 36px !important;
+    height: 36px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .stat-icon {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  .stat-info h3 {
+    font-size: 14pt !important;
+    color: #111 !important;
+  }
+  .stat-info p {
+    font-size: 7.5pt !important;
+    color: #666 !important;
+  }
+
+  /* Filter controls printing */
+  .filter-controls {
+    display: block !important;
+    background: #f9f9f9 !important;
+    border: 1px solid #ddd !important;
+    border-radius: 8px !important;
+    padding: 12px 15px !important;
+    margin-bottom: 20px !important;
+  }
+  .search-box-wrapper input {
+    background: #ffffff !important;
+    border: 1px solid #ccc !important;
+    color: #111111 !important;
+    padding: 8px 12px 8px 36px !important;
+  }
+  .search-icon {
+    left: 12px !important;
+    width: 16px !important;
+    height: 16px !important;
+  }
+  .blood-pills {
+    display: flex !important;
+    gap: 6px !important;
+  }
+  .blood-pill {
+    background: #ffffff !important;
+    border: 1px solid #ccc !important;
+    color: #333 !important;
+    padding: 4px 10px !important;
+    font-size: 8pt !important;
+  }
+  .blood-pill.active {
+    background: #cc0000 !important;
+    color: #ffffff !important;
+    border-color: #cc0000 !important;
+  }
+
   /* Add dynamic active filter print notice */
   #list-page::before {
     content: "Active Filter: Blood Group [ " attr(data-active-filter) " ]";
     display: block;
     font-weight: bold;
-    margin-bottom: 15px;
-    font-size: 12pt;
+    margin-bottom: 12px;
+    font-size: 11pt;
     text-transform: uppercase;
     color: #444;
   }
@@ -1391,13 +1478,13 @@ body {
   /* Donors Grid Layout formatting for print */
   .donors-grid {
     display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important; /* Stack neatly side by side */
+    grid-template-columns: repeat(2, 1fr) !important;
     gap: 15px !important;
     background: transparent !important;
   }
 
   .donor-card {
-    background: white !important;
+    background: #ffffff !important;
     border: 1px solid #ccc !important;
     box-shadow: none !important;
     padding: 15px !important;
@@ -1405,11 +1492,10 @@ body {
     border-radius: 8px !important;
   }
 
-  /* Force all nested text, spans, strong tags, and icons to render in black when printed */
+  /* Force all nested text, spans, and strong tags to render in black when printed */
   .donor-card,
   .donor-card * {
-    color: black !important;
-    fill: currentColor !important;
+    color: #111111 !important;
   }
 
   .donor-card-header {
@@ -1417,9 +1503,9 @@ body {
   }
 
   .donor-group-badge {
-    background: #f0f0f0 !important;
-    color: black !important;
-    border: 1.5px solid black !important;
+    background: #f5f5f5 !important;
+    color: #cc0000 !important;
+    border: 1.5px solid #cc0000 !important;
     box-shadow: none !important;
     font-size: 11pt !important;
     width: 32px !important;
@@ -1429,8 +1515,9 @@ body {
   .status-badge {
     background: transparent !important;
     border: 1px solid #777 !important;
-    color: black !important;
+    color: #111111 !important;
     font-size: 8pt !important;
+    padding: 3px 8px !important;
   }
 
   .status-badge.eligible {
@@ -1444,26 +1531,57 @@ body {
   }
 
   .donor-card-body h2 {
-    font-size: 14pt !important;
-    color: black !important;
+    font-size: 13pt !important;
+    color: #111111 !important;
     margin-bottom: 4px !important;
   }
 
   .donor-card-body p {
-    color: #333 !important;
+    color: #333333 !important;
     font-size: 10pt !important;
+  }
+  
+  .phone-icon {
+    width: 14px !important;
+    height: 14px !important;
   }
 
   .donor-card-footer {
     border-top: 1px dashed #ccc !important;
     padding-top: 8px !important;
-    color: #555 !important;
+    color: #555555 !important;
     font-size: 9pt !important;
   }
 
+  .card-action-row {
+    display: flex !important;
+    gap: 8px !important;
+    margin-top: 10px !important;
+  }
+
+  .card-call-btn, .card-delete-btn {
+    background: #ffffff !important;
+    border: 1px solid #ccc !important;
+    color: #333333 !important;
+    font-size: 9pt !important;
+    padding: 6px 0 !important;
+    box-shadow: none !important;
+  }
+
   /* Manage Table print layout rules */
+  .table-actions-header {
+    display: flex !important;
+    margin-bottom: 12px !important;
+  }
+  
+  .search-box-wrapper.mini input {
+    background: #ffffff !important;
+    border: 1px solid #ccc !important;
+    color: #111111 !important;
+  }
+  
   .manage-table {
-    display: table !important; /* Ensure table remains a table when printing */
+    display: table !important;
     border: 1px solid #ccc !important;
     width: 100% !important;
   }
@@ -1480,9 +1598,39 @@ body {
 
   .manage-table th, .manage-table td {
     display: table-cell !important;
-    color: black !important;
+    color: #111111 !important;
     padding: 8px 12px !important;
     border-bottom: 1px solid #ccc !important;
     text-align: left !important;
+  }
+  
+  .table-blood-badge {
+    background: #f5f5f5 !important;
+    border: 1px solid #cc0000 !important;
+    color: #cc0000 !important;
+  }
+  
+  .action-buttons {
+    display: flex !important;
+    gap: 6px !important;
+  }
+  
+  .btn-table {
+    background: #ffffff !important;
+    border: 1px solid #ccc !important;
+    color: #333333 !important;
+    padding: 4px 8px !important;
+    font-size: 8pt !important;
+    box-shadow: none !important;
+  }
+  
+  .btn-table.btn-donate {
+    border-color: green !important;
+    color: green !important;
+  }
+  
+  .btn-table.btn-delete {
+    border-color: #cc0000 !important;
+    color: #cc0000 !important;
   }
 }
