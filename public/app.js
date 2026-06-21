@@ -59,6 +59,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Setup Event Listeners
   setupEventListeners();
+
+  // Periodically sync the donor list in the background every 8 seconds for multi-device live loading
+  setInterval(fetchDonors, 8000);
 });
 
 // ==========================================================================
@@ -205,7 +208,7 @@ function closeMobileMenu() {
 // ==========================================================================
 async function fetchDonors() {
   try {
-    const res = await fetch('/api/donors');
+    const res = await fetch('/api/donors?_t=' + Date.now());
     if (!res.ok) throw new Error('Failed to fetch donors list.');
     state.donors = await res.json();
     
