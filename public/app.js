@@ -125,6 +125,53 @@ function setupEventListeners() {
     });
   }
 
+  // Temporarily show all donors during printing
+  let savedFilter = 'all';
+  let savedSearchQuery = '';
+  let savedManageSearchQuery = '';
+
+  window.addEventListener('beforeprint', () => {
+    savedFilter = state.currentFilter;
+    savedSearchQuery = state.searchQuery;
+    if (manageSearchInput) {
+      savedManageSearchQuery = manageSearchInput.value;
+      manageSearchInput.value = '';
+    }
+    
+    state.currentFilter = 'all';
+    state.searchQuery = '';
+    
+    // Update data attribute for print header
+    const listPage = document.getElementById('list-page');
+    if (listPage) {
+      listPage.setAttribute('data-active-filter', 'All');
+    }
+    
+    renderDonorsGrid();
+    renderManageTable();
+  });
+
+  window.addEventListener('afterprint', () => {
+    state.currentFilter = savedFilter;
+    state.searchQuery = savedSearchQuery;
+    if (manageSearchInput) {
+      manageSearchInput.value = savedManageSearchQuery;
+    }
+    
+    // Restore data attribute
+    const listPage = document.getElementById('list-page');
+    if (listPage) {
+      listPage.setAttribute('data-active-filter', savedFilter);
+    }
+    
+    renderDonorsGrid();
+    if (manageSearchInput) {
+      renderManageTable(savedManageSearchQuery.toLowerCase().trim());
+    } else {
+      renderManageTable();
+    }
+  });
+
   // Forms Hook (rebind triggers on dynamic page updates)
   bindFormSubmissions();
 
