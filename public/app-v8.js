@@ -69,6 +69,13 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(reg => console.log('Service Worker registered successfully:', reg.scope))
       .catch(err => console.log('Service Worker registration failed:', err));
   }
+
+  // Initial connection check
+  updateConnectionStatus();
+
+  // Connection Event Listeners
+  window.addEventListener('online', updateConnectionStatus);
+  window.addEventListener('offline', updateConnectionStatus);
 });
 
 // ==========================================================================
@@ -737,6 +744,18 @@ function removeToast(toast) {
 // ==========================================================================
 // UTILITIES
 // ==========================================================================
+function updateConnectionStatus() {
+  const offlineBanner = document.getElementById('offline-banner');
+  if (!offlineBanner) return;
+
+  if (navigator.onLine) {
+    offlineBanner.classList.add('hidden');
+  } else {
+    offlineBanner.classList.remove('hidden');
+    showToast('Your device went offline. Syncing paused.', 'error');
+  }
+}
+
 function renderPrintSection() {
   const printSection = document.getElementById('print-section');
   if (!printSection) return;
