@@ -1313,64 +1313,66 @@ async function syncDonorsToConnectedExcel() {
       }
     }
 
-    // Two-Way Sync: Find donors in Excel that are NOT in the database
-    let bloodColIndex = 0;
-    let nameColIndex = 1;
-    let houseColIndex = 2;
-    let unitColIndex = 4;
+    // Two-Way Sync: Find donors in Excel that are NOT in the database (Only run when logged in as admin)
+    if (state.authToken) {
+      let bloodColIndex = 0;
+      let nameColIndex = 1;
+      let houseColIndex = 2;
+      let unitColIndex = 4;
 
-    const headers = rows[headerRowIndex] || [];
-    headers.forEach((cell, idx) => {
-      const name = String(cell).toLowerCase();
-      if (name.includes('blood')) bloodColIndex = idx;
-      if (name.includes('name') && !name.includes('house')) nameColIndex = idx;
-      if (name.includes('house')) houseColIndex = idx;
-      if (name.includes('unit') || name.includes('ward')) unitColIndex = idx;
-    });
+      const headers = rows[headerRowIndex] || [];
+      headers.forEach((cell, idx) => {
+        const name = String(cell).toLowerCase();
+        if (name.includes('blood')) bloodColIndex = idx;
+        if (name.includes('name') && !name.includes('house')) nameColIndex = idx;
+        if (name.includes('house')) houseColIndex = idx;
+        if (name.includes('unit') || name.includes('ward')) unitColIndex = idx;
+      });
 
-    const dbPhones = new Set(state.donors.map(d => extractLast10Digits(d.phone)));
-    const newDonorsFromExcel = [];
+      const dbPhones = new Set(state.donors.map(d => extractLast10Digits(d.phone)));
+      const newDonorsFromExcel = [];
 
-    for (let r = headerRowIndex + 1; r < rows.length; r++) {
-      const row = rows[r];
-      if (row && row[phoneColIndex]) {
-        const phoneVal = String(row[phoneColIndex]).trim();
-        const cleanedPhone = extractLast10Digits(phoneVal);
-        if (cleanedPhone && !dbPhones.has(cleanedPhone)) {
-          const nameVal = row[nameColIndex] ? String(row[nameColIndex]).trim() : 'Excel Import';
-          const bloodVal = row[bloodColIndex] ? String(row[bloodColIndex]).toUpperCase().trim() : 'O+';
-          const houseVal = row[houseColIndex] ? String(row[houseColIndex]).trim() : '';
-          const unitVal = row[unitColIndex] ? String(row[unitColIndex]).trim() : '1';
+      for (let r = headerRowIndex + 1; r < rows.length; r++) {
+        const row = rows[r];
+        if (row && row[phoneColIndex]) {
+          const phoneVal = String(row[phoneColIndex]).trim();
+          const cleanedPhone = extractLast10Digits(phoneVal);
+          if (cleanedPhone && !dbPhones.has(cleanedPhone)) {
+            const nameVal = row[nameColIndex] ? String(row[nameColIndex]).trim() : 'Excel Import';
+            const bloodVal = row[bloodColIndex] ? String(row[bloodColIndex]).toUpperCase().trim() : 'O+';
+            const houseVal = row[houseColIndex] ? String(row[houseColIndex]).trim() : '';
+            const unitVal = row[unitColIndex] ? String(row[unitColIndex]).trim() : '1';
 
-          let wardNum = parseInt(unitVal, 10);
-          if (isNaN(wardNum) || wardNum < 1 || wardNum > 22) wardNum = 1;
+            let wardNum = parseInt(unitVal, 10);
+            if (isNaN(wardNum) || wardNum < 1 || wardNum > 22) wardNum = 1;
 
-          newDonorsFromExcel.push({
-            name: nameVal,
-            phone: phoneVal,
-            bloodGroup: bloodVal,
-            houseName: houseVal,
-            unitNo: String(wardNum)
-          });
+            newDonorsFromExcel.push({
+              name: nameVal,
+              phone: phoneVal,
+              bloodGroup: bloodVal,
+              houseName: houseVal,
+              unitNo: String(wardNum)
+            });
+          }
         }
       }
-    }
 
-    if (newDonorsFromExcel.length > 0) {
-      const offlineQueue = JSON.parse(localStorage.getItem('offline_donors') || '[]');
-      let addedCount = 0;
-      newDonorsFromExcel.forEach(donor => {
-        const isDup = offlineQueue.some(d => extractLast10Digits(d.phone) === extractLast10Digits(donor.phone));
-        if (!isDup) {
-          offlineQueue.push(donor);
-          addedCount++;
-        }
-      });
-      if (addedCount > 0) {
-        localStorage.setItem('offline_donors', JSON.stringify(offlineQueue));
-        showToast(`Detected ${addedCount} new donor(s) in Excel. Queued for database sync.`, 'info');
-        if (navigator.onLine) {
-          processOfflineQueue();
+      if (newDonorsFromExcel.length > 0) {
+        const offlineQueue = JSON.parse(localStorage.getItem('offline_donors') || '[]');
+        let addedCount = 0;
+        newDonorsFromExcel.forEach(donor => {
+          const isDup = offlineQueue.some(d => extractLast10Digits(d.phone) === extractLast10Digits(donor.phone));
+          if (!isDup) {
+            offlineQueue.push(donor);
+            addedCount++;
+          }
+        });
+        if (addedCount > 0) {
+          localStorage.setItem('offline_donors', JSON.stringify(offlineQueue));
+          showToast(`Detected ${addedCount} new donor(s) in Excel. Queued for database sync.`, 'info');
+          if (navigator.onLine) {
+            processOfflineQueue();
+          }
         }
       }
     }
