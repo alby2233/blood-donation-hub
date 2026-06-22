@@ -47,7 +47,6 @@
         <button class="nav-link auth-only" data-target="list-page" id="nav-list">Find Donors</button>
         <button class="nav-link active" data-target="register-page" id="nav-register">Register Donor</button>
         <button class="nav-link auth-only" data-target="manage-page" id="nav-manage">Manage Directory</button>
-        <button class="nav-link unauth-only" data-target="login-page" id="nav-login">Admin Login</button>
         <button class="nav-link auth-only" id="nav-logout">Logout</button>
       </nav>
 
@@ -66,7 +65,6 @@
       <button class="mobile-nav-link auth-only" data-target="list-page" id="mob-nav-list">Find Donors</button>
       <button class="mobile-nav-link active" data-target="register-page" id="mob-nav-register">Register Donor</button>
       <button class="mobile-nav-link auth-only" data-target="manage-page" id="mob-nav-manage">Manage Directory</button>
-      <button class="mobile-nav-link unauth-only" data-target="login-page" id="mob-nav-login">Admin Login</button>
       <button class="mobile-nav-link auth-only" id="mob-nav-logout">Logout</button>
     </nav>
   </div>
@@ -239,6 +237,20 @@
           </button>
         </form>
       </div>
+
+      <!-- Public Donors Directory List -->
+      <div class="form-container" style="margin-top: 48px; max-width: 720px;">
+        <div class="glass-form" style="padding: 30px; gap: 16px;">
+          <h2 style="font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; color: var(--text-main); margin-bottom: 4px; text-align: center;">Active Blood Donors Directory</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; margin-bottom: 12px; margin-top: 0;">Showing names and blood groups of registered volunteers.</p>
+          <div id="public-donors-list">
+            <div class="loading-state" style="padding: 20px;">
+              <div class="spinner"></div>
+              <p>Loading directory...</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- PAGE 4: ADMIN LOGIN PAGE -->
@@ -409,7 +421,7 @@
   <footer class="app-footer">
     <div class="footer-content">
       <p>&copy; 2026 Lifesaver Blood Donation Network. All rights reserved.</p>
-      <p class="footer-subtext">Providing critical donation matching for health systems globally. <span style="opacity: 0.5; margin-left: 8px;">v1.0.9</span></p>
+      <p class="footer-subtext">Providing critical donation matching for health systems globally. <span style="opacity: 0.5; margin-left: 8px;">v1.0.9</span> <span class="unauth-only" style="margin-left: 12px; margin-right: 12px; opacity: 0.5;">|</span> <a href="#" class="unauth-only" id="footer-admin-login" style="color: var(--text-muted); text-decoration: none; font-weight: 500; transition: color 0.2s ease;">Admin Portal</a></p>
     </div>
   </footer>
 

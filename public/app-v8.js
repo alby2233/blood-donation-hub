@@ -59,18 +59,22 @@ const editCancel = document.getElementById('edit-cancel');
 // INITIALIZATION
 // ==========================================================================
 document.addEventListener('DOMContentLoaded', () => {
-  // Load Initial Donors Data if logged in
+  // Load Initial Donors Data (auth or public)
   if (state.authToken) {
     fetchDonors();
+  } else {
+    fetchPublicDonors();
   }
 
   // Setup Event Listeners
   setupEventListeners();
 
-  // Periodically sync the donor list in the background every 8 seconds for logged in users
+  // Periodically sync the donor list in the background every 8 seconds
   setInterval(() => {
     if (state.authToken) {
       fetchDonors();
+    } else {
+      fetchPublicDonors();
     }
   }, 8000);
 
@@ -102,7 +106,14 @@ function setupEventListeners() {
     e.preventDefault();
     switchView(state.authToken ? 'list-page' : 'register-page');
   });
-
+  // Footer Admin Portal Link Click
+  const footerLogin = document.getElementById('footer-admin-login');
+  if (footerLogin) {
+    footerLogin.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchView('login-page');
+    });
+  }
   // Desktop & Mobile Navigation Links
   Object.keys(navButtons).forEach(viewKey => {
     navButtons[viewKey].forEach(btn => {
@@ -362,6 +373,61 @@ async function handleLogout() {
 // ==========================================================================
 // DATA API INTERACTION
 // ==========================================================================
+async function fetchPublicDonors() {
+  try {
+    const res = await fetch('/api/public-donors?_t=' + Date.now());
+    if (!res.ok) throw new Error('Failed to fetch public donors.');
+    const publicDonors = await res.json();
+    
+    // Sort alphabetically by name
+    publicDonors.sort((a, b) => a.name.localeCompare(b.name));
+    
+    renderPublicDonors(publicDonors);
+  } catch (error) {
+    console.error(error);
+    const container = document.getElementById('public-donors-list');
+    if (container) {
+      container.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.95rem; padding: 10px 0;">Unable to load donor list directory.</p>`;
+    }
+  }
+}
+
+function renderPublicDonors(donors) {
+  const container = document.getElementById('public-donors-list');
+  if (!container) return;
+  container.innerHTML = '';
+  
+  if (donors.length === 0) {
+    container.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.95rem; padding: 10px 0;">No active donors registered yet.</p>`;
+    return;
+  }
+  
+  const listWrapper = document.createElement('div');
+  listWrapper.style.display = 'grid';
+  listWrapper.style.gridTemplateColumns = 'repeat(auto-fill, minmax(160px, 1fr))';
+  listWrapper.style.gap = '12px';
+  listWrapper.style.marginTop = '8px';
+  
+  donors.forEach(donor => {
+    const item = document.createElement('div');
+    item.style.backgroundColor = 'var(--bg-primary)';
+    item.style.border = '1px solid var(--border-color)';
+    item.style.borderRadius = 'var(--radius-sm)';
+    item.style.padding = '10px 14px';
+    item.style.display = 'flex';
+    item.style.justifyContent = 'space-between';
+    item.style.alignItems = 'center';
+    item.style.gap = '8px';
+    
+    item.innerHTML = `
+      <span style="font-weight: 600; color: var(--text-main); font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 105px;" title="${escapeHtml(donor.name)}">${escapeHtml(donor.name)}</span>
+      <span class="table-blood-badge" style="margin: 0; padding: 2px 8px; font-size: 0.8rem; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700;">${escapeHtml(donor.bloodGroup)}</span>
+    `;
+    listWrapper.appendChild(item);
+  });
+  container.appendChild(listWrapper);
+}
+
 async function fetchDonors() {
   if (!state.authToken) return;
   try {
@@ -717,9 +783,14 @@ async function handleRegisterSubmit(e) {
     // Reset Form
     registerForm.reset();
     
-    // Fetch and navigate to list
-    await fetchDonors();
-    switchView('list-page');
+    // Fetch and navigate based on auth status
+    if (state.authToken) {
+      await fetchDonors();
+      switchView('list-page');
+    } else {
+      await fetchPublicDonors();
+      switchView('register-page');
+    }
   } catch (error) {
     showToast(error.message, 'error');
   }
