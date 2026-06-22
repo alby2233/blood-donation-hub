@@ -365,6 +365,13 @@ async function handleLogout() {
   state.donors = [];
   closeSSE();
   
+  // Reset Excel connection
+  state.excelFileHandle = null;
+  const connectBtnText = document.getElementById('connect-excel-text');
+  if (connectBtnText) {
+    connectBtnText.textContent = 'Connect Excel File';
+  }
+  
   updateAuthUI();
   showToast('Logged out successfully.', 'success');
   
@@ -766,6 +773,11 @@ async function handleRegisterSubmit(e) {
     
     // Fetch and navigate based on auth status
     if (state.authToken) {
+      const newDonor = await res.json();
+      state.donors.push(newDonor);
+      if (state.excelFileHandle) {
+        syncDonorsToConnectedExcel();
+      }
       await fetchDonors();
       switchView('list-page');
     } else {
@@ -857,8 +869,18 @@ async function handleEditSubmit(e) {
       throw new Error(errData.error || 'Failed to update donor.');
     }
 
+    const updatedDonor = await res.json();
     showToast('Donor profile updated successfully.', 'success');
     closeEditModal();
+    
+    // Update local state and sync instantly
+    const idx = state.donors.findIndex(d => d.id === id);
+    if (idx !== -1) {
+      state.donors[idx] = updatedDonor;
+    }
+    if (state.excelFileHandle) {
+      syncDonorsToConnectedExcel();
+    }
     fetchDonors();
   } catch (error) {
     showToast(error.message, 'error');
@@ -882,7 +904,17 @@ async function logDonation(id) {
       throw new Error('Could not record donation timestamp.');
     }
     
+    const updatedDonor = await res.json();
     showToast('Donation recorded. Donor is now in a 6-month resting period.', 'success');
+    
+    // Update local state and sync instantly
+    const idx = state.donors.findIndex(d => d.id === id);
+    if (idx !== -1) {
+      state.donors[idx] = updatedDonor;
+    }
+    if (state.excelFileHandle) {
+      syncDonorsToConnectedExcel();
+    }
     fetchDonors();
   } catch (error) {
     showToast(error.message, 'error');
@@ -908,6 +940,12 @@ async function confirmDeleteDonor(donor) {
       }
 
       showToast(`${donor.name}'s profile deleted.`, 'success');
+      
+      // Update local state and sync instantly
+      state.donors = state.donors.filter(d => d.id !== donor.id);
+      if (state.excelFileHandle) {
+        syncDonorsToConnectedExcel();
+      }
       fetchDonors();
     } catch (error) {
       showToast(error.message, 'error');
