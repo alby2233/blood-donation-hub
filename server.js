@@ -40,7 +40,7 @@ function requireAuth(req, res, next) {
 
 // Helper to validate donor input
 function validateDonorInput(req, res, next) {
-  const { name, phone, bloodGroup, unitNo } = req.body;
+  const { name, phone, bloodGroup, unitNo, houseName } = req.body;
   
   if (!name || typeof name !== 'string' || name.trim().length === 0) {
     return res.status(400).json({ error: 'Name is required and must be a valid string' });
@@ -48,6 +48,10 @@ function validateDonorInput(req, res, next) {
   
   if (!phone || typeof phone !== 'string' || phone.trim().length === 0) {
     return res.status(400).json({ error: 'Phone number is required' });
+  }
+
+  if (!houseName || typeof houseName !== 'string' || houseName.trim().length === 0) {
+    return res.status(400).json({ error: 'House name is required and must be a valid string' });
   }
 
   const validBloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -67,7 +71,8 @@ function validateDonorInput(req, res, next) {
     name: name.trim(),
     phone: phone.trim(),
     bloodGroup: formattedBloodGroup,
-    unitNo: unitNo ? String(unitNo).trim() : ''
+    unitNo: unitNo ? String(unitNo).trim() : '',
+    houseName: houseName.trim()
   };
   
   next();

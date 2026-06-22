@@ -7,7 +7,9 @@ const state = {
   searchQuery: '',
   activeView: sessionStorage.getItem('auth_token') ? 'list-page' : 'register-page',
   editingDonorId: null,
-  authToken: sessionStorage.getItem('auth_token') || null
+  authToken: sessionStorage.getItem('auth_token') || null,
+  excelFileHandle: null,
+  isSyncingExcel: false
 };
 
 // ==========================================================================
@@ -154,6 +156,14 @@ function setupEventListeners() {
       renderDonorsGrid();
     }
   });
+
+  // Connect Excel Button trigger
+  const connectExcelBtn = document.getElementById('connect-excel-btn');
+  if (connectExcelBtn) {
+    connectExcelBtn.addEventListener('click', () => {
+      connectExcelFile();
+    });
+  }
 
   // Export Button trigger
   const printBtn = document.getElementById('print-btn');
@@ -387,6 +397,11 @@ async function fetchDonors() {
     
     if (state.activeView === 'list-page') renderDonorsGrid();
     if (state.activeView === 'manage-page') renderManageTable();
+
+    // Sync to connected Excel file in background if one is connected
+    if (state.excelFileHandle) {
+      syncDonorsToConnectedExcel();
+    }
   } catch (error) {
     console.error(error);
     showToast(error.message, 'error');
@@ -488,7 +503,8 @@ function renderDonorsGrid() {
   // Filter donor list based on Search and Blood Group Filter
   const filtered = state.donors.filter(donor => {
     const matchesSearch = donor.name.toLowerCase().includes(state.searchQuery) || 
-                          donor.phone.includes(state.searchQuery);
+                          donor.phone.includes(state.searchQuery) ||
+                          (donor.houseName && donor.houseName.toLowerCase().includes(state.searchQuery));
     const matchesBlood = state.currentFilter === 'all' || donor.bloodGroup === state.currentFilter;
     return matchesSearch && matchesBlood;
   });
@@ -532,6 +548,14 @@ function renderDonorsGrid() {
           </svg>
           ${escapeHtml(donor.phone)}
         </p>
+        ${donor.houseName ? `
+          <p style="margin-top: 6px;">
+            <svg class="phone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            House: <strong>${escapeHtml(donor.houseName)}</strong>
+          </p>
+        ` : ''}
         ${donor.unitNo ? `
           <p style="margin-top: 6px;">
             <svg class="phone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -574,7 +598,8 @@ function renderManageTable(searchQuery = '') {
 
   const filtered = state.donors.filter(donor => {
     return donor.name.toLowerCase().includes(searchQuery) || 
-           donor.phone.includes(searchQuery);
+           donor.phone.includes(searchQuery) ||
+           (donor.houseName && donor.houseName.toLowerCase().includes(searchQuery));
   });
 
   if (filtered.length === 0) {
@@ -597,6 +622,7 @@ function renderManageTable(searchQuery = '') {
         <span class="table-blood-badge">${escapeHtml(donor.bloodGroup)}</span>
       </td>
       <td class="donor-name" data-label="Donor Name">${escapeHtml(donor.name)}</td>
+      <td data-label="House">${escapeHtml(donor.houseName || '-')}</td>
       <td class="phone-cell" data-label="Phone">${escapeHtml(donor.phone)}</td>
       <td data-label="Unit">${escapeHtml(donor.unitNo || '-')}</td>
       <td data-label="Eligibility Status">
@@ -654,11 +680,12 @@ async function handleRegisterSubmit(e) {
   e.preventDefault();
   
   const nameInput = document.getElementById('reg-name');
+  const houseInput = document.getElementById('reg-house');
   const phoneInput = document.getElementById('reg-phone');
   const unitInput = document.getElementById('reg-unit');
   const bloodGroupRadio = document.querySelector('input[name="reg-blood"]:checked');
 
-  if (!nameInput || !phoneInput || !bloodGroupRadio) return;
+  if (!nameInput || !phoneInput || !bloodGroupRadio || !houseInput) return;
 
   // Client side validation
   let hasError = false;
@@ -669,6 +696,14 @@ async function handleRegisterSubmit(e) {
     hasError = true;
   } else {
     nameInput.closest('.form-group').classList.remove('has-error');
+  }
+
+  // Validate House Name
+  if (!houseInput.value || houseInput.value.trim().length === 0) {
+    houseInput.closest('.form-group').classList.add('has-error');
+    hasError = true;
+  } else {
+    houseInput.closest('.form-group').classList.remove('has-error');
   }
 
   // Validate Phone (Indian mobile format)
@@ -694,7 +729,8 @@ async function handleRegisterSubmit(e) {
     name: nameInput.value,
     phone: phoneInput.value,
     bloodGroup: bloodGroupRadio.value,
-    unitNo: unitInput ? unitInput.value.trim() : ''
+    unitNo: unitInput ? unitInput.value.trim() : '',
+    houseName: houseInput.value.trim()
   };
 
   try {
@@ -732,11 +768,12 @@ async function handleEditSubmit(e) {
 
   const id = document.getElementById('edit-id').value;
   const nameInput = document.getElementById('edit-name');
+  const houseInput = document.getElementById('edit-house');
   const phoneInput = document.getElementById('edit-phone');
   const unitInput = document.getElementById('edit-unit');
   const bloodGroupRadio = document.querySelector('input[name="edit-blood"]:checked');
 
-  if (!nameInput || !phoneInput || !bloodGroupRadio) return;
+  if (!nameInput || !phoneInput || !bloodGroupRadio || !houseInput) return;
 
   // Client side validation
   let hasError = false;
@@ -747,6 +784,14 @@ async function handleEditSubmit(e) {
     hasError = true;
   } else {
     nameInput.closest('.form-group').classList.remove('has-error');
+  }
+
+  // Validate House Name
+  if (!houseInput.value || houseInput.value.trim().length === 0) {
+    houseInput.closest('.form-group').classList.add('has-error');
+    hasError = true;
+  } else {
+    houseInput.closest('.form-group').classList.remove('has-error');
   }
 
   // Validate Phone (Indian mobile format)
@@ -772,7 +817,8 @@ async function handleEditSubmit(e) {
     name: nameInput.value,
     phone: phoneInput.value,
     bloodGroup: bloodGroupRadio.value,
-    unitNo: unitInput ? unitInput.value.trim() : ''
+    unitNo: unitInput ? unitInput.value.trim() : '',
+    houseName: houseInput.value.trim()
   };
 
   try {
@@ -859,6 +905,7 @@ function openEditModal(donor) {
   state.editingDonorId = donor.id;
   document.getElementById('edit-id').value = donor.id;
   document.getElementById('edit-name').value = donor.name;
+  document.getElementById('edit-house').value = donor.houseName || "";
   document.getElementById('edit-phone').value = donor.phone;
   document.getElementById('edit-unit').value = donor.unitNo || "";
 
@@ -938,7 +985,7 @@ function exportToExcel() {
   }
 
   // Define Excel headers matching our table
-  const headers = ['Blood Group', 'Donor Name', 'Phone Number', 'Unit/Ward No.', 'Eligibility Status', 'Last Donated Date'];
+  const headers = ['Blood Group', 'Donor Name', 'House Name', 'Phone Number', 'Unit/Ward No.', 'Eligibility Status', 'Last Donated Date'];
   
   // Check if SheetJS library is loaded
   if (typeof XLSX === 'undefined') {
@@ -952,6 +999,7 @@ function exportToExcel() {
     return [
       donor.bloodGroup,
       donor.name,
+      donor.houseName || '',
       String(donor.phone),
       String(donor.unitNo || ''),
       eligibility.eligible ? 'Eligible' : 'Resting',
@@ -970,13 +1018,13 @@ function exportToExcel() {
   // to prevent Microsoft Excel from converting them to scientific notation or removing leading zeros.
   const range = XLSX.utils.decode_range(ws['!ref']);
   for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-    // Column 2 (Phone Number)
-    const phoneCellRef = XLSX.utils.encode_cell({ r: R, c: 2 });
+    // Column 3 (Phone Number)
+    const phoneCellRef = XLSX.utils.encode_cell({ r: R, c: 3 });
     if (ws[phoneCellRef]) {
       ws[phoneCellRef].t = 's'; // Force type to string
     }
-    // Column 3 (Unit/Ward No.)
-    const unitCellRef = XLSX.utils.encode_cell({ r: R, c: 3 });
+    // Column 4 (Unit/Ward No.)
+    const unitCellRef = XLSX.utils.encode_cell({ r: R, c: 4 });
     if (ws[unitCellRef]) {
       ws[unitCellRef].t = 's'; // Force type to string
     }
@@ -990,6 +1038,204 @@ function exportToExcel() {
   XLSX.writeFile(wb, `Lifesaver_Blood_Registry_${dateStr}.xlsx`);
   
   showToast('Registry exported to Excel (.xlsx) successfully.', 'success');
+}
+
+async function connectExcelFile() {
+  if (typeof XLSX === 'undefined') {
+    showToast('Export library is still loading. Please try again in a second.', 'error');
+    return;
+  }
+  
+  if (!window.showOpenFilePicker) {
+    showToast('Your browser does not support direct file connection. Falling back to manual export.', 'error');
+    return;
+  }
+
+  try {
+    const [fileHandle] = await window.showOpenFilePicker({
+      types: [
+        {
+          description: 'Excel files',
+          accept: {
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']
+          }
+        }
+      ],
+      multiple: false
+    });
+
+    state.excelFileHandle = fileHandle;
+    const file = await fileHandle.getFile();
+    
+    // Update button text to show filename
+    const connectBtnText = document.getElementById('connect-excel-text');
+    if (connectBtnText) {
+      connectBtnText.textContent = `Connected: ${file.name}`;
+    }
+    
+    showToast(`Successfully connected to: ${file.name}`, 'success');
+    
+    // Trigger initial sync to append any missing database donors to this Excel file
+    await syncDonorsToConnectedExcel();
+  } catch (error) {
+    if (error.name !== 'AbortError') {
+      console.error('Error connecting Excel file:', error);
+      showToast(`Failed to connect Excel file: ${error.message}`, 'error');
+    }
+  }
+}
+
+async function syncDonorsToConnectedExcel() {
+  if (!state.excelFileHandle) return;
+  if (state.isSyncingExcel) return;
+  state.isSyncingExcel = true;
+
+  try {
+    // Verify or request read/write permission
+    const hasPermission = await verifyFilePermission(state.excelFileHandle, true);
+    if (!hasPermission) {
+      showToast('Permission denied to access the Excel file.', 'error');
+      state.isSyncingExcel = false;
+      return;
+    }
+
+    const file = await state.excelFileHandle.getFile();
+    const arrayBuffer = await file.arrayBuffer();
+    
+    let workbook;
+    try {
+      workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
+    } catch (e) {
+      // If file is empty or corrupted, create a new workbook
+      workbook = XLSX.utils.book_new();
+    }
+
+    const sheetName = 'Blood Donors Registry';
+    let ws = workbook.Sheets[sheetName];
+    if (!ws) {
+      if (workbook.SheetNames.length > 0) {
+        ws = workbook.Sheets[workbook.SheetNames[0]];
+      } else {
+        ws = XLSX.utils.aoa_to_sheet([]);
+        XLSX.utils.book_append_sheet(workbook, ws, sheetName);
+      }
+    }
+
+    let rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+    const expectedHeaders = ['Blood Group', 'Donor Name', 'House Name', 'Phone Number', 'Unit/Ward No.', 'Eligibility Status', 'Last Donated Date'];
+
+    let headerRowIndex = -1;
+    let phoneColIndex = 3; // default column D (index 3)
+    
+    // Check if headers already exist in the file
+    for (let r = 0; r < Math.min(rows.length, 5); r++) {
+      const row = rows[r];
+      if (row.some(cell => String(cell).toLowerCase().includes('blood') || String(cell).toLowerCase().includes('phone'))) {
+        headerRowIndex = r;
+        const pIdx = row.findIndex(cell => String(cell).toLowerCase().includes('phone'));
+        if (pIdx !== -1) phoneColIndex = pIdx;
+        break;
+      }
+    }
+
+    if (headerRowIndex === -1) {
+      if (rows.length === 0) {
+        rows.push(expectedHeaders);
+      } else {
+        rows.unshift(expectedHeaders);
+      }
+      headerRowIndex = 0;
+      phoneColIndex = 3;
+    }
+
+    // Collect all existing phone numbers in Excel
+    const existingPhones = new Set();
+    for (let r = headerRowIndex + 1; r < rows.length; r++) {
+      const row = rows[r];
+      if (row && row[phoneColIndex] !== undefined && row[phoneColIndex] !== null) {
+        const cleanedPhone = String(row[phoneColIndex]).replace(/[-\s\(\)]/g, '').trim();
+        if (cleanedPhone) {
+          existingPhones.add(cleanedPhone);
+        }
+      }
+    }
+
+    const newDonorsToAppend = [];
+    state.donors.forEach(donor => {
+      const cleanedDBPhone = String(donor.phone).replace(/[-\s\(\)]/g, '').trim();
+      if (!existingPhones.has(cleanedDBPhone)) {
+        newDonorsToAppend.push(donor);
+      }
+    });
+
+    if (newDonorsToAppend.length === 0) {
+      state.isSyncingExcel = false;
+      return;
+    }
+
+    // Append new donors
+    newDonorsToAppend.forEach(donor => {
+      const eligibility = calculateEligibility(donor.lastDonated);
+      const newRow = [];
+      newRow[0] = donor.bloodGroup;
+      newRow[1] = donor.name;
+      newRow[2] = donor.houseName || '';
+      newRow[3] = String(donor.phone);
+      newRow[4] = String(donor.unitNo || '');
+      newRow[5] = eligibility.eligible ? 'Eligible' : 'Resting';
+      newRow[6] = donor.lastDonated ? new Date(donor.lastDonated).toLocaleDateString() : 'Never';
+      
+      rows.push(newRow);
+    });
+
+    const newWs = XLSX.utils.aoa_to_sheet(rows);
+    const range = XLSX.utils.decode_range(newWs['!ref']);
+    for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+      const phoneCellRef = XLSX.utils.encode_cell({ r: R, c: 3 });
+      if (newWs[phoneCellRef]) {
+        newWs[phoneCellRef].t = 's';
+      }
+      const unitCellRef = XLSX.utils.encode_cell({ r: R, c: 4 });
+      if (newWs[unitCellRef]) {
+        newWs[unitCellRef].t = 's';
+      }
+    }
+
+    const activeSheetName = workbook.SheetNames[0] || sheetName;
+    workbook.Sheets[activeSheetName] = newWs;
+
+    const wbOut = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const writable = await state.excelFileHandle.createWritable();
+    await writable.write(wbOut);
+    await writable.close();
+
+    showToast(`Excel file synced. Appended ${newDonorsToAppend.length} new donor(s).`, 'success');
+  } catch (error) {
+    console.error('Excel Sync Error:', error);
+    if (error.name === 'NotAllowedError') {
+      showToast('Permission to write to the connected Excel file was denied.', 'error');
+    } else if (error.message && error.message.includes('locked')) {
+      showToast('Excel file is locked (it may be open in Excel). Please close the file to allow auto-sync.', 'warning');
+    } else {
+      showToast(`Excel Auto-Sync failed: ${error.message}. If the file is open in Excel, please close it.`, 'warning');
+    }
+  } finally {
+    state.isSyncingExcel = false;
+  }
+}
+
+async function verifyFilePermission(fileHandle, readWrite) {
+  const options = {};
+  if (readWrite) {
+    options.mode = 'readwrite';
+  }
+  if ((await fileHandle.queryPermission(options)) === 'granted') {
+    return true;
+  }
+  if ((await fileHandle.requestPermission(options)) === 'granted') {
+    return true;
+  }
+  return false;
 }
 
 function escapeHtml(str) {

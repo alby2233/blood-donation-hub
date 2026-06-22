@@ -113,14 +113,26 @@
           <h1>Find Blood Donors</h1>
           <p>Search and filter donors in real-time. Contact active eligible donors below.</p>
         </div>
-        <button class="submit-btn" id="print-btn" style="padding: 10px 20px; font-size: 0.95rem; background-color: var(--accent-blue); box-shadow: 0 4px 10px var(--accent-blue-glow);">
-          <svg style="width:16px;height:16px;margin-right:8px;vertical-align:middle;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          <span>Export Registry</span>
-        </button>
+        <div class="action-buttons-group" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <button class="submit-btn" id="connect-excel-btn" style="padding: 10px 20px; font-size: 0.95rem; background-color: #107c41; box-shadow: 0 4px 10px rgba(16, 124, 65, 0.3); border: none;">
+            <svg style="width:16px;height:16px;margin-right:8px;vertical-align:middle;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            <span id="connect-excel-text">Connect Excel File</span>
+          </button>
+
+          <button class="submit-btn" id="print-btn" style="padding: 10px 20px; font-size: 0.95rem; background-color: var(--accent-blue); box-shadow: 0 4px 10px var(--accent-blue-glow);">
+            <svg style="width:16px;height:16px;margin-right:8px;vertical-align:middle;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Export Registry</span>
+          </button>
+        </div>
       </div>
 
       <!-- Filter Controls Panel -->
@@ -173,6 +185,15 @@
               <input type="text" id="reg-name" required placeholder="e.g. John Doe">
             </div>
             <span class="error-message" id="error-reg-name">Please enter a valid full name.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="reg-house">House Name</label>
+            <div class="input-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <input type="text" id="reg-house" required placeholder="e.g. Green Villa">
+            </div>
+            <span class="error-message" id="error-reg-house">House name is required.</span>
           </div>
 
           <div class="form-group">
@@ -305,6 +326,7 @@
               <tr>
                 <th>Blood</th>
                 <th>Donor Name</th>
+                <th>House</th>
                 <th>Phone</th>
                 <th>Unit</th>
                 <th>Eligibility Status</th>
@@ -338,6 +360,15 @@
             <input type="text" id="edit-name" required placeholder="e.g. John Doe">
           </div>
           <span class="error-message" id="error-edit-name">Name is required.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-house">House Name</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <input type="text" id="edit-house" required placeholder="e.g. Green Villa">
+          </div>
+          <span class="error-message" id="error-edit-house">House name is required.</span>
         </div>
 
         <div class="form-group">

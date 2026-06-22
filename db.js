@@ -5,12 +5,13 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/blood_
 let isMock = false;
 let mockDonors = [];
 
-// Define Mongoose Schema with the new unitNo field
+// Define Mongoose Schema with the new unitNo and houseName fields
 const donorSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   phone: { type: String, required: true, trim: true },
   bloodGroup: { type: String, required: true, uppercase: true, trim: true },
   unitNo: { type: String, default: '' }, // New field representing donated unit numbers
+  houseName: { type: String, default: '' }, // New field representing donor house names
   lastDonated: { type: Date, default: null }
 }, {
   timestamps: true
@@ -27,6 +28,7 @@ function formatDonor(doc) {
     phone: doc.phone,
     bloodGroup: doc.bloodGroup,
     unitNo: doc.unitNo || '',
+    houseName: doc.houseName || '',
     lastDonated: doc.lastDonated ? doc.lastDonated.toISOString() : null
   };
 }
@@ -41,9 +43,9 @@ async function connectDB() {
     console.warn('WARNING: Failed to connect to MongoDB. Falling back to in-memory database for local testing.');
     isMock = true;
     mockDonors = [
-      { id: 'mock-1', name: 'Alby George', phone: '9876543210', bloodGroup: 'O+', unitNo: 'Unit 4', lastDonated: null },
-      { id: 'mock-2', name: 'John Miller', phone: '9988776655', bloodGroup: 'A+', unitNo: 'Ward 2', lastDonated: new Date(Date.now() - 1000 * 60 * 60 * 24 * 45).toISOString() },
-      { id: 'mock-3', name: 'Sarah Connor', phone: '9123456789', bloodGroup: 'B-', unitNo: 'Unit 1', lastDonated: new Date(Date.now() - 1000 * 60 * 60 * 24 * 200).toISOString() }
+      { id: 'mock-1', name: 'Alby George', phone: '9876543210', bloodGroup: 'O+', unitNo: '4', houseName: 'Rose Villa', lastDonated: null },
+      { id: 'mock-2', name: 'John Miller', phone: '9988776655', bloodGroup: 'A+', unitNo: '2', houseName: 'Grace Cottage', lastDonated: new Date(Date.now() - 1000 * 60 * 60 * 24 * 45).toISOString() },
+      { id: 'mock-3', name: 'Sarah Connor', phone: '9123456789', bloodGroup: 'B-', unitNo: '1', houseName: 'Skyline Apartments', lastDonated: new Date(Date.now() - 1000 * 60 * 60 * 24 * 200).toISOString() }
     ];
   }
 }
@@ -60,7 +62,7 @@ async function getDonors() {
 }
 
 // Add a donor
-async function addDonor({ name, phone, bloodGroup, unitNo }) {
+async function addDonor({ name, phone, bloodGroup, unitNo, houseName }) {
   if (isMock) {
     const newDonor = {
       id: 'mock-' + Math.random().toString(36).substr(2, 9),
@@ -68,18 +70,19 @@ async function addDonor({ name, phone, bloodGroup, unitNo }) {
       phone,
       bloodGroup: bloodGroup.toUpperCase(),
       unitNo: unitNo || '',
+      houseName: houseName || '',
       lastDonated: null
     };
     mockDonors.push(newDonor);
     return newDonor;
   }
-  const donor = new Donor({ name, phone, bloodGroup, unitNo });
+  const donor = new Donor({ name, phone, bloodGroup, unitNo, houseName });
   await donor.save();
   return formatDonor(donor);
 }
 
 // Update a donor
-async function updateDonor(id, { name, phone, bloodGroup, unitNo }) {
+async function updateDonor(id, { name, phone, bloodGroup, unitNo, houseName }) {
   if (isMock) {
     const donor = mockDonors.find(d => d.id === id);
     if (!donor) {
@@ -89,6 +92,7 @@ async function updateDonor(id, { name, phone, bloodGroup, unitNo }) {
     donor.phone = phone;
     donor.bloodGroup = bloodGroup.toUpperCase();
     donor.unitNo = unitNo || '';
+    donor.houseName = houseName || '';
     return donor;
   }
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -96,7 +100,7 @@ async function updateDonor(id, { name, phone, bloodGroup, unitNo }) {
   }
   const donor = await Donor.findByIdAndUpdate(
     id, 
-    { name, phone, bloodGroup, unitNo }, 
+    { name, phone, bloodGroup, unitNo, houseName }, 
     { new: true, runValidators: true }
   );
   if (!donor) {
