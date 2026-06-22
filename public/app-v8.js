@@ -87,9 +87,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initial connection check
   updateConnectionStatus();
+  if (navigator.onLine) {
+    processOfflineQueue();
+  }
 
   // Connection Event Listeners
-  window.addEventListener('online', updateConnectionStatus);
+  window.addEventListener('online', () => {
+    updateConnectionStatus();
+    processOfflineQueue();
+  });
   window.addEventListener('offline', updateConnectionStatus);
 
   // Set default view or switch based on current auth state
@@ -738,6 +744,10 @@ async function handleRegisterSubmit(e) {
   };
 
   try {
+    if (!navigator.onLine) {
+      throw new TypeError('Failed to fetch'); // Force network error while offline
+    }
+
     const res = await fetch('/api/donors', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -762,7 +772,11 @@ async function handleRegisterSubmit(e) {
       switchView('register-page');
     }
   } catch (error) {
-    showToast(error.message, 'error');
+    if (error.name === 'TypeError' || error.message.includes('fetch') || !navigator.onLine) {
+      queueOfflineDonor(payload);
+    } else {
+      showToast(error.message, 'error');
+    }
   }
 }
 
@@ -984,6 +998,66 @@ function updateConnectionStatus() {
   }
 }
 
+async function processOfflineQueue() {
+  if (!navigator.onLine) return;
+  try {
+    const offlineQueue = JSON.parse(localStorage.getItem('offline_donors') || '[]');
+    if (offlineQueue.length === 0) return;
+
+    showToast(`Online: Syncing ${offlineQueue.length} offline registration(s)...`, 'info');
+    
+    let successCount = 0;
+    const remainingQueue = [];
+
+    for (const payload of offlineQueue) {
+      try {
+        const res = await fetch('/api/donors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          successCount++;
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          if (res.status === 400) {
+            console.error('Validation error for offline payload:', errData);
+          } else {
+            remainingQueue.push(payload);
+          }
+        }
+      } catch (err) {
+        remainingQueue.push(payload);
+      }
+    }
+
+    localStorage.setItem('offline_donors', JSON.stringify(remainingQueue));
+    if (successCount > 0) {
+      showToast(`Successfully synced ${successCount} offline donor(s) to the database.`, 'success');
+      if (state.authToken) {
+        fetchDonors();
+      }
+    }
+  } catch (e) {
+    console.error('Error processing offline queue:', e);
+  }
+}
+
+function queueOfflineDonor(payload) {
+  try {
+    const offlineQueue = JSON.parse(localStorage.getItem('offline_donors') || '[]');
+    const isDup = offlineQueue.some(d => d.phone === payload.phone);
+    if (!isDup) {
+      offlineQueue.push(payload);
+      localStorage.setItem('offline_donors', JSON.stringify(offlineQueue));
+    }
+    showToast(`Offline: Registration saved locally and will sync when online.`, 'warning');
+    if (registerForm) registerForm.reset();
+  } catch (e) {
+    console.error('Error queuing offline registration:', e);
+  }
+}
+
 function exportToExcel() {
   if (state.donors.length === 0) {
     showToast('No registered donors to export.', 'error');
@@ -1178,6 +1252,68 @@ async function syncDonorsToConnectedExcel() {
         const cleanedPhone = extractLast10Digits(row[phoneColIndex]);
         if (cleanedPhone) {
           existingPhones.add(cleanedPhone);
+        }
+      }
+    }
+
+    // Two-Way Sync: Find donors in Excel that are NOT in the database
+    let bloodColIndex = 0;
+    let nameColIndex = 1;
+    let houseColIndex = 2;
+    let unitColIndex = 4;
+
+    const headers = rows[headerRowIndex] || [];
+    headers.forEach((cell, idx) => {
+      const name = String(cell).toLowerCase();
+      if (name.includes('blood')) bloodColIndex = idx;
+      if (name.includes('name') && !name.includes('house')) nameColIndex = idx;
+      if (name.includes('house')) houseColIndex = idx;
+      if (name.includes('unit') || name.includes('ward')) unitColIndex = idx;
+    });
+
+    const dbPhones = new Set(state.donors.map(d => extractLast10Digits(d.phone)));
+    const newDonorsFromExcel = [];
+
+    for (let r = headerRowIndex + 1; r < rows.length; r++) {
+      const row = rows[r];
+      if (row && row[phoneColIndex]) {
+        const phoneVal = String(row[phoneColIndex]).trim();
+        const cleanedPhone = extractLast10Digits(phoneVal);
+        if (cleanedPhone && !dbPhones.has(cleanedPhone)) {
+          const nameVal = row[nameColIndex] ? String(row[nameColIndex]).trim() : 'Excel Import';
+          const bloodVal = row[bloodColIndex] ? String(row[bloodColIndex]).toUpperCase().trim() : 'O+';
+          const houseVal = row[houseColIndex] ? String(row[houseColIndex]).trim() : '';
+          const unitVal = row[unitColIndex] ? String(row[unitColIndex]).trim() : '1';
+
+          let wardNum = parseInt(unitVal, 10);
+          if (isNaN(wardNum) || wardNum < 1 || wardNum > 22) wardNum = 1;
+
+          newDonorsFromExcel.push({
+            name: nameVal,
+            phone: phoneVal,
+            bloodGroup: bloodVal,
+            houseName: houseVal,
+            unitNo: String(wardNum)
+          });
+        }
+      }
+    }
+
+    if (newDonorsFromExcel.length > 0) {
+      const offlineQueue = JSON.parse(localStorage.getItem('offline_donors') || '[]');
+      let addedCount = 0;
+      newDonorsFromExcel.forEach(donor => {
+        const isDup = offlineQueue.some(d => extractLast10Digits(d.phone) === extractLast10Digits(donor.phone));
+        if (!isDup) {
+          offlineQueue.push(donor);
+          addedCount++;
+        }
+      });
+      if (addedCount > 0) {
+        localStorage.setItem('offline_donors', JSON.stringify(offlineQueue));
+        showToast(`Detected ${addedCount} new donor(s) in Excel. Queued for database sync.`, 'info');
+        if (navigator.onLine) {
+          processOfflineQueue();
         }
       }
     }
