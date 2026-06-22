@@ -5,8 +5,9 @@ const state = {
   donors: [],
   currentFilter: 'all',
   searchQuery: '',
-  activeView: 'list-page',
-  editingDonorId: null
+  activeView: sessionStorage.getItem('auth_token') ? 'list-page' : 'register-page',
+  editingDonorId: null,
+  authToken: sessionStorage.getItem('auth_token') || null
 };
 
 // ==========================================================================
@@ -15,13 +16,15 @@ const state = {
 const pages = {
   list: document.getElementById('list-page'),
   register: document.getElementById('register-page'),
-  manage: document.getElementById('manage-page')
+  manage: document.getElementById('manage-page'),
+  login: document.getElementById('login-page')
 };
 
 const navButtons = {
   list: [document.getElementById('nav-list'), document.getElementById('mob-nav-list')],
   register: [document.getElementById('nav-register'), document.getElementById('mob-nav-register')],
-  manage: [document.getElementById('nav-manage'), document.getElementById('mob-nav-manage')]
+  manage: [document.getElementById('nav-manage'), document.getElementById('mob-nav-manage')],
+  login: [document.getElementById('nav-login'), document.getElementById('mob-nav-login')]
 };
 
 const brandLogo = document.getElementById('brand-logo');
@@ -32,6 +35,8 @@ const drawerOverlay = document.getElementById('drawer-overlay');
 // Forms & Inputs
 const registerForm = document.getElementById('register-donor-form');
 const editForm = document.getElementById('edit-donor-form');
+const loginForm = document.getElementById('login-form');
+const logoutButtons = [document.getElementById('nav-logout'), document.getElementById('mob-nav-logout')];
 const searchInput = document.getElementById('search-input');
 const manageSearchInput = document.getElementById('manage-search');
 const bloodPillsContainer = document.getElementById('blood-pills-list');
@@ -54,14 +59,20 @@ const editCancel = document.getElementById('edit-cancel');
 // INITIALIZATION
 // ==========================================================================
 document.addEventListener('DOMContentLoaded', () => {
-  // Load Initial Donors Data
-  fetchDonors();
+  // Load Initial Donors Data if logged in
+  if (state.authToken) {
+    fetchDonors();
+  }
 
   // Setup Event Listeners
   setupEventListeners();
 
-  // Periodically sync the donor list in the background every 8 seconds for multi-device live loading
-  setInterval(fetchDonors, 8000);
+  // Periodically sync the donor list in the background every 8 seconds for logged in users
+  setInterval(() => {
+    if (state.authToken) {
+      fetchDonors();
+    }
+  }, 8000);
 
   // Register PWA Service Worker for offline install capability
   if ('serviceWorker' in navigator) {
@@ -76,30 +87,43 @@ document.addEventListener('DOMContentLoaded', () => {
   // Connection Event Listeners
   window.addEventListener('online', updateConnectionStatus);
   window.addEventListener('offline', updateConnectionStatus);
+
+  // Set default view or switch based on current auth state
+  updateAuthUI();
+  switchView(state.activeView);
 });
 
 // ==========================================================================
 // EVENT LISTENERS SETUP
 // ==========================================================================
 function setupEventListeners() {
-  // Brand Logo Click (goes to list page)
+  // Brand Logo Click (goes to list page if logged in, else register-page)
   brandLogo.addEventListener('click', (e) => {
     e.preventDefault();
-    switchView('list-page');
+    switchView(state.authToken ? 'list-page' : 'register-page');
   });
 
   // Desktop & Mobile Navigation Links
   Object.keys(navButtons).forEach(viewKey => {
     navButtons[viewKey].forEach(btn => {
+      if (!btn) return;
       btn.addEventListener('click', () => {
-        let targetView = 'list-page';
-        if (viewKey === 'register') targetView = 'register-page';
+        let targetView = 'register-page';
+        if (viewKey === 'list') targetView = 'list-page';
         if (viewKey === 'manage') targetView = 'manage-page';
+        if (viewKey === 'login') targetView = 'login-page';
         
         switchView(targetView);
         closeMobileMenu();
       });
     });
+  });
+
+  // Logout Buttons trigger
+  logoutButtons.forEach(btn => {
+    if (btn) {
+      btn.addEventListener('click', handleLogout);
+    }
   });
 
   // Mobile Menu Toggle
@@ -167,12 +191,22 @@ function bindFormSubmissions() {
     edForm.removeEventListener('submit', handleEditSubmit);
     edForm.addEventListener('submit', handleEditSubmit);
   }
+  const logForm = document.getElementById('login-form');
+  if (logForm) {
+    logForm.removeEventListener('submit', handleLoginSubmit);
+    logForm.addEventListener('submit', handleLoginSubmit);
+  }
 }
 
 // ==========================================================================
 // VIEW ROUTING
 // ==========================================================================
 function switchView(targetViewId) {
+  // Route guard: Redirect guests trying to access protected pages to the login page
+  if (!state.authToken && (targetViewId === 'list-page' || targetViewId === 'manage-page')) {
+    targetViewId = 'login-page';
+  }
+
   state.activeView = targetViewId;
 
   // Update Nav Active Styles
@@ -181,8 +215,10 @@ function switchView(targetViewId) {
     if (viewKey === 'list' && targetViewId === 'list-page') matchesTarget = true;
     if (viewKey === 'register' && targetViewId === 'register-page') matchesTarget = true;
     if (viewKey === 'manage' && targetViewId === 'manage-page') matchesTarget = true;
+    if (viewKey === 'login' && targetViewId === 'login-page') matchesTarget = true;
 
     navButtons[viewKey].forEach(btn => {
+      if (!btn) return;
       if (matchesTarget) {
         btn.classList.add('active');
       } else {
@@ -193,7 +229,7 @@ function switchView(targetViewId) {
 
   // Toggle Page Sections
   Object.values(pages).forEach(page => {
-    page.classList.remove('active');
+    if (page) page.classList.remove('active');
   });
 
   const activePage = document.getElementById(targetViewId);
@@ -224,12 +260,123 @@ function closeMobileMenu() {
 }
 
 // ==========================================================================
+// AUTHENTICATION MANAGEMENT
+// ==========================================================================
+function updateAuthUI() {
+  if (state.authToken) {
+    document.body.classList.add('authenticated');
+  } else {
+    document.body.classList.remove('authenticated');
+  }
+}
+
+async function handleLoginSubmit(e) {
+  e.preventDefault();
+  
+  const usernameInput = document.getElementById('login-username');
+  const passwordInput = document.getElementById('login-password');
+  
+  if (!usernameInput || !passwordInput) return;
+  
+  let hasError = false;
+  
+  // Validate Username
+  if (!usernameInput.value || usernameInput.value.trim().length === 0) {
+    usernameInput.closest('.form-group').classList.add('has-error');
+    hasError = true;
+  } else {
+    usernameInput.closest('.form-group').classList.remove('has-error');
+  }
+  
+  // Validate Password
+  if (!passwordInput.value || passwordInput.value.trim().length === 0) {
+    passwordInput.closest('.form-group').classList.add('has-error');
+    hasError = true;
+  } else {
+    passwordInput.closest('.form-group').classList.remove('has-error');
+  }
+  
+  if (hasError) return;
+  
+  const payload = {
+    username: usernameInput.value.trim(),
+    password: passwordInput.value
+  };
+  
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.error || 'Invalid credentials');
+    }
+    
+    const data = await res.json();
+    state.authToken = data.token;
+    sessionStorage.setItem('auth_token', data.token);
+    
+    // Clear login form inputs
+    if (loginForm) loginForm.reset();
+    
+    updateAuthUI();
+    showToast('Logged in successfully.', 'success');
+    
+    // Fetch data and transition view
+    await fetchDonors();
+    switchView('list-page');
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
+}
+
+async function handleLogout() {
+  if (state.authToken) {
+    try {
+      await fetch('/api/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${state.authToken}`
+        }
+      });
+    } catch (err) {
+      console.error('Logout request failed:', err);
+    }
+  }
+  
+  state.authToken = null;
+  sessionStorage.removeItem('auth_token');
+  state.donors = [];
+  
+  updateAuthUI();
+  showToast('Logged out successfully.', 'success');
+  
+  // Reset counters and view
+  updateCounters();
+  switchView('register-page');
+}
+
+// ==========================================================================
 // DATA API INTERACTION
 // ==========================================================================
 async function fetchDonors() {
+  if (!state.authToken) return;
   try {
-    const res = await fetch('/api/donors?_t=' + Date.now());
-    if (!res.ok) throw new Error('Failed to fetch donors list.');
+    const res = await fetch('/api/donors?_t=' + Date.now(), {
+      headers: {
+        'Authorization': `Bearer ${state.authToken}`
+      }
+    });
+    if (!res.ok) {
+      if (res.status === 401) {
+        handleLogout();
+        throw new Error('Session expired. Please log in again.');
+      }
+      throw new Error('Failed to fetch donors list.');
+    }
     state.donors = await res.json();
     
     // Sort donors: Active/Eligible first, then alphabetical name
@@ -628,11 +775,18 @@ async function handleEditSubmit(e) {
   try {
     const res = await fetch(`/api/donors/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.authToken}`
+      },
       body: JSON.stringify(payload)
     });
 
     if (!res.ok) {
+      if (res.status === 401) {
+        handleLogout();
+        throw new Error('Session expired. Please log in again.');
+      }
       const errData = await res.json();
       throw new Error(errData.error || 'Failed to update donor.');
     }
@@ -648,10 +802,19 @@ async function handleEditSubmit(e) {
 async function logDonation(id) {
   try {
     const res = await fetch(`/api/donors/${id}/donate`, {
-      method: 'POST'
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${state.authToken}`
+      }
     });
 
-    if (!res.ok) throw new Error('Could not record donation timestamp.');
+    if (!res.ok) {
+      if (res.status === 401) {
+        handleLogout();
+        throw new Error('Session expired. Please log in again.');
+      }
+      throw new Error('Could not record donation timestamp.');
+    }
     
     showToast('Donation recorded. Donor is now in a 6-month resting period.', 'success');
     fetchDonors();
@@ -664,10 +827,19 @@ async function confirmDeleteDonor(donor) {
   if (confirm(`Are you absolutely sure you want to delete ${donor.name}'s registry record?`)) {
     try {
       const res = await fetch(`/api/donors/${donor.id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${state.authToken}`
+        }
       });
 
-      if (!res.ok) throw new Error('Deletion request failed.');
+      if (!res.ok) {
+        if (res.status === 401) {
+          handleLogout();
+          throw new Error('Session expired. Please log in again.');
+        }
+        throw new Error('Deletion request failed.');
+      }
 
       showToast(`${donor.name}'s profile deleted.`, 'success');
       fetchDonors();

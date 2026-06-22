@@ -1352,6 +1352,37 @@ body {
   100% { transform: scale(1); opacity: 1; }
 }
 
+/* ==========================================================================
+   AUTHENTICATION LAYOUT VISIBILITY
+   ========================================================================== */
+/* Default Guest Mode (Unauthenticated) */
+body:not(.authenticated) .auth-only {
+  display: none !important;
+}
+body:not(.authenticated) .unauth-only {
+  display: block !important;
+}
+body:not(.authenticated) button.unauth-only,
+body:not(.authenticated) a.unauth-only,
+body:not(.authenticated) .nav-link.unauth-only,
+body:not(.authenticated) .mobile-nav-link.unauth-only {
+  display: inline-flex !important;
+}
+
+/* Authenticated Mode (Logged In) */
+body.authenticated .auth-only {
+  display: block !important;
+}
+body.authenticated button.auth-only,
+body.authenticated a.auth-only,
+body.authenticated .nav-link.auth-only,
+body.authenticated .mobile-nav-link.auth-only {
+  display: inline-flex !important;
+}
+body.authenticated .unauth-only {
+  display: none !important;
+}
+
 /* Screen styles for print-only elements */
 .print-only,
 #print-section {

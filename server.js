@@ -18,6 +18,26 @@ app.use((req, res, next) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Session token management and admin credentials
+const crypto = require('crypto');
+const sessions = new Set();
+
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'kcym';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'kcym098';
+
+// Auth middleware to secure private endpoints
+function requireAuth(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized: Missing token' });
+  }
+  const token = authHeader.substring(7);
+  if (!sessions.has(token)) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid session' });
+  }
+  next();
+}
+
 // Helper to validate donor input
 function validateDonorInput(req, res, next) {
   const { name, phone, bloodGroup, unitNo } = req.body;
@@ -50,8 +70,28 @@ function validateDonorInput(req, res, next) {
 
 // REST API Endpoints
 
+// Admin Authentication Endpoints
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+    const token = crypto.randomBytes(16).toString('hex');
+    sessions.add(token);
+    return res.json({ success: true, token });
+  }
+  res.status(401).json({ error: 'Invalid username or password' });
+});
+
+app.post('/api/logout', (req, res) => {
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    sessions.delete(token);
+  }
+  res.json({ success: true });
+});
+
 // Get all donors
-app.get('/api/donors', async (req, res) => {
+app.get('/api/donors', requireAuth, async (req, res) => {
   try {
     const donors = await db.getDonors();
     res.json(donors);
@@ -73,7 +113,7 @@ app.post('/api/donors', validateDonorInput, async (req, res) => {
 });
 
 // Update a donor
-app.put('/api/donors/:id', validateDonorInput, async (req, res) => {
+app.put('/api/donors/:id', requireAuth, validateDonorInput, async (req, res) => {
   try {
     const { id } = req.params;
     const updated = await db.updateDonor(id, req.cleanedBody);
@@ -88,7 +128,7 @@ app.put('/api/donors/:id', validateDonorInput, async (req, res) => {
 });
 
 // Delete a donor
-app.delete('/api/donors/:id', async (req, res) => {
+app.delete('/api/donors/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const result = await db.deleteDonor(id);
@@ -103,7 +143,7 @@ app.delete('/api/donors/:id', async (req, res) => {
 });
 
 // Mark donor as donated
-app.post('/api/donors/:id/donate', async (req, res) => {
+app.post('/api/donors/:id/donate', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const updated = await db.markDonated(id);
