@@ -173,6 +173,13 @@ function setupEventListeners() {
     });
   }
 
+  const connectExcelBtnPublic = document.getElementById('connect-excel-btn-public');
+  if (connectExcelBtnPublic) {
+    connectExcelBtnPublic.addEventListener('click', () => {
+      connectExcelFile();
+    });
+  }
+
   // Export Button trigger
   const printBtn = document.getElementById('print-btn');
   if (printBtn) {
@@ -365,10 +372,9 @@ async function handleLogout() {
   state.donors = [];
   closeSSE();
   
-  // Reset Excel connection
-  state.excelFileHandle = null;
+  // Reset Excel connection text on admin button if needed, but keep file handle
   const connectBtnText = document.getElementById('connect-excel-text');
-  if (connectBtnText) {
+  if (connectBtnText && !state.excelFileHandle) {
     connectBtnText.textContent = 'Connect Excel File';
   }
   
@@ -771,13 +777,22 @@ async function handleRegisterSubmit(e) {
     // Reset Form
     registerForm.reset();
     
-    // Fetch and navigate based on auth status
-    if (state.authToken) {
+    // Parse new donor and sync Excel regardless of auth status
+    try {
       const newDonor = await res.json();
-      state.donors.push(newDonor);
+      const exists = state.donors.some(d => d.id === newDonor.id);
+      if (!exists) {
+        state.donors.push(newDonor);
+      }
       if (state.excelFileHandle) {
         syncDonorsToConnectedExcel();
       }
+    } catch (e) {
+      console.error('Error parsing response or syncing Excel:', e);
+    }
+    
+    // Fetch and navigate based on auth status
+    if (state.authToken) {
       await fetchDonors();
       switchView('list-page');
     } else {
@@ -1198,6 +1213,10 @@ async function connectExcelFile() {
     const connectBtnText = document.getElementById('connect-excel-text');
     if (connectBtnText) {
       connectBtnText.textContent = `Connected: ${file.name}`;
+    }
+    const connectBtnTextPublic = document.getElementById('connect-excel-text-public');
+    if (connectBtnTextPublic) {
+      connectBtnTextPublic.textContent = `Connected: ${file.name}`;
     }
     
     showToast(`Successfully connected to: ${file.name}`, 'success');

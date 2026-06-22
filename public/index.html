@@ -169,11 +169,20 @@
 
     <!-- PAGE 2: REGISTER / ADD DONOR PAGE -->
     <section id="register-page" class="page-view active">
-      <div class="page-header">
+      <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
         <div class="page-title-area">
           <h1>Register New Donor</h1>
           <p>Join the registry to save lives. Fill in the details to add a new donor profile.</p>
         </div>
+        <button class="submit-btn" id="connect-excel-btn-public" style="padding: 10px 20px; font-size: 0.95rem; background-color: #107c41; box-shadow: 0 4px 10px rgba(16, 124, 65, 0.3); border: none;">
+          <svg style="width:16px;height:16px;margin-right:8px;vertical-align:middle;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          <span id="connect-excel-text-public">Connect Excel File</span>
+        </button>
       </div>
 
       <div class="form-container">
