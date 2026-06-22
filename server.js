@@ -80,6 +80,28 @@ function validateDonorInput(req, res, next) {
 
 // REST API Endpoints
 
+// Server-Sent Events (SSE) active connections and helper
+let sseClients = [];
+
+app.get('/api/updates', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  sseClients.push(res);
+
+  req.on('close', () => {
+    sseClients = sseClients.filter(client => client !== res);
+  });
+});
+
+function broadcastUpdate() {
+  sseClients.forEach(client => {
+    client.write('data: update\n\n');
+  });
+}
+
 // Admin Authentication Endpoints
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
@@ -119,6 +141,7 @@ app.get('/api/donors', requireAuth, async (req, res) => {
 app.post('/api/donors', validateDonorInput, async (req, res) => {
   try {
     const newDonor = await db.addDonor(req.cleanedBody);
+    broadcastUpdate();
     res.status(201).json(newDonor);
   } catch (error) {
     console.error('Error adding donor:', error);
@@ -131,6 +154,7 @@ app.put('/api/donors/:id', requireAuth, validateDonorInput, async (req, res) => 
   try {
     const { id } = req.params;
     const updated = await db.updateDonor(id, req.cleanedBody);
+    broadcastUpdate();
     res.json(updated);
   } catch (error) {
     console.error('Error updating donor:', error);
@@ -146,6 +170,7 @@ app.delete('/api/donors/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const result = await db.deleteDonor(id);
+    broadcastUpdate();
     res.json(result);
   } catch (error) {
     console.error('Error deleting donor:', error);
@@ -161,6 +186,7 @@ app.post('/api/donors/:id/donate', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const updated = await db.markDonated(id);
+    broadcastUpdate();
     res.json(updated);
   } catch (error) {
     console.error('Error marking donor as donated:', error);

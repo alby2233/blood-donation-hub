@@ -9,7 +9,8 @@ const state = {
   editingDonorId: null,
   authToken: sessionStorage.getItem('auth_token') || null,
   excelFileHandle: null,
-  isSyncingExcel: false
+  isSyncingExcel: false,
+  sseSource: null
 };
 
 // ==========================================================================
@@ -64,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load Initial Donors Data if logged in
   if (state.authToken) {
     fetchDonors();
+    initSSE();
   }
 
   // Setup Event Listeners
@@ -331,6 +333,7 @@ async function handleLoginSubmit(e) {
     
     // Fetch data and transition view
     await fetchDonors();
+    initSSE();
     switchView('list-page');
   } catch (error) {
     showToast(error.message, 'error');
@@ -354,6 +357,7 @@ async function handleLogout() {
   state.authToken = null;
   sessionStorage.removeItem('auth_token');
   state.donors = [];
+  closeSSE();
   
   updateAuthUI();
   showToast('Logged out successfully.', 'success');
@@ -1148,12 +1152,19 @@ async function syncDonorsToConnectedExcel() {
       phoneColIndex = 3;
     }
 
+    // Helper to extract the last 10 digits of a phone number to ignore country codes/spaces/symbols
+    function extractLast10Digits(phone) {
+      if (!phone) return '';
+      const digits = String(phone).replace(/\D/g, '');
+      return digits.length >= 10 ? digits.slice(-10) : digits;
+    }
+
     // Collect all existing phone numbers in Excel
     const existingPhones = new Set();
     for (let r = headerRowIndex + 1; r < rows.length; r++) {
       const row = rows[r];
       if (row && row[phoneColIndex] !== undefined && row[phoneColIndex] !== null) {
-        const cleanedPhone = String(row[phoneColIndex]).replace(/[-\s\(\)]/g, '').trim();
+        const cleanedPhone = extractLast10Digits(row[phoneColIndex]);
         if (cleanedPhone) {
           existingPhones.add(cleanedPhone);
         }
@@ -1162,7 +1173,7 @@ async function syncDonorsToConnectedExcel() {
 
     const newDonorsToAppend = [];
     state.donors.forEach(donor => {
-      const cleanedDBPhone = String(donor.phone).replace(/[-\s\(\)]/g, '').trim();
+      const cleanedDBPhone = extractLast10Digits(donor.phone);
       if (!existingPhones.has(cleanedDBPhone)) {
         newDonorsToAppend.push(donor);
       }
@@ -1236,6 +1247,33 @@ async function verifyFilePermission(fileHandle, readWrite) {
     return true;
   }
   return false;
+}
+
+function initSSE() {
+  if (!state.authToken) return;
+  if (state.sseSource) {
+    state.sseSource.close();
+  }
+
+  const sse = new EventSource('/api/updates');
+  sse.onmessage = (event) => {
+    if (event.data === 'update') {
+      fetchDonors();
+    }
+  };
+  sse.onerror = (err) => {
+    console.warn('SSE connection lost. Reconnecting in 5 seconds...', err);
+    sse.close();
+    setTimeout(initSSE, 5000);
+  };
+  state.sseSource = sse;
+}
+
+function closeSSE() {
+  if (state.sseSource) {
+    state.sseSource.close();
+    state.sseSource = null;
+  }
 }
 
 function escapeHtml(str) {
