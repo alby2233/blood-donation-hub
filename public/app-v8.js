@@ -7,10 +7,7 @@ const state = {
   searchQuery: '',
   activeView: sessionStorage.getItem('auth_token') ? 'list-page' : 'register-page',
   editingDonorId: null,
-  authToken: sessionStorage.getItem('auth_token') || null,
-  excelFileHandle: null,
-  isSyncingExcel: false,
-  sseSource: null
+  authToken: sessionStorage.getItem('auth_token') || null
 };
 
 // ==========================================================================
@@ -65,7 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load Initial Donors Data if logged in
   if (state.authToken) {
     fetchDonors();
-    initSSE();
   }
 
   // Setup Event Listeners
@@ -87,15 +83,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initial connection check
   updateConnectionStatus();
-  if (navigator.onLine) {
-    processOfflineQueue();
-  }
 
   // Connection Event Listeners
-  window.addEventListener('online', () => {
-    updateConnectionStatus();
-    processOfflineQueue();
-  });
+  window.addEventListener('online', updateConnectionStatus);
   window.addEventListener('offline', updateConnectionStatus);
 
   // Set default view or switch based on current auth state
@@ -165,20 +155,7 @@ function setupEventListeners() {
     }
   });
 
-  // Connect Excel Button trigger
-  const connectExcelBtn = document.getElementById('connect-excel-btn');
-  if (connectExcelBtn) {
-    connectExcelBtn.addEventListener('click', () => {
-      connectExcelFile();
-    });
-  }
 
-  const connectExcelBtnPublic = document.getElementById('connect-excel-btn-public');
-  if (connectExcelBtnPublic) {
-    connectExcelBtnPublic.addEventListener('click', () => {
-      connectExcelFile();
-    });
-  }
 
   // Export Button trigger
   const printBtn = document.getElementById('print-btn');
@@ -346,7 +323,6 @@ async function handleLoginSubmit(e) {
     
     // Fetch data and transition view
     await fetchDonors();
-    initSSE();
     switchView('list-page');
   } catch (error) {
     showToast(error.message, 'error');
@@ -370,13 +346,6 @@ async function handleLogout() {
   state.authToken = null;
   sessionStorage.removeItem('auth_token');
   state.donors = [];
-  closeSSE();
-  
-  // Reset Excel connection text on admin button if needed, but keep file handle
-  const connectBtnText = document.getElementById('connect-excel-text');
-  if (connectBtnText && !state.excelFileHandle) {
-    connectBtnText.textContent = 'Connect Excel File';
-  }
   
   updateAuthUI();
   showToast('Logged out successfully.', 'success');
@@ -421,10 +390,7 @@ async function fetchDonors() {
     if (state.activeView === 'list-page') renderDonorsGrid();
     if (state.activeView === 'manage-page') renderManageTable();
 
-    // Sync to connected Excel file in background if one is connected
-    if (state.excelFileHandle) {
-      syncDonorsToConnectedExcel();
-    }
+
   } catch (error) {
     console.error(error);
     showToast(error.message, 'error');
@@ -757,10 +723,6 @@ async function handleRegisterSubmit(e) {
   };
 
   try {
-    if (!navigator.onLine) {
-      throw new TypeError('Failed to fetch'); // Force network error while offline
-    }
-
     const res = await fetch('/api/donors', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -777,20 +739,6 @@ async function handleRegisterSubmit(e) {
     // Reset Form
     registerForm.reset();
     
-    // Parse new donor and sync Excel regardless of auth status
-    try {
-      const newDonor = await res.json();
-      const exists = state.donors.some(d => d.id === newDonor.id);
-      if (!exists) {
-        state.donors.push(newDonor);
-      }
-      if (state.excelFileHandle) {
-        syncDonorsToConnectedExcel();
-      }
-    } catch (e) {
-      console.error('Error parsing response or syncing Excel:', e);
-    }
-    
     // Fetch and navigate based on auth status
     if (state.authToken) {
       await fetchDonors();
@@ -799,11 +747,7 @@ async function handleRegisterSubmit(e) {
       switchView('register-page');
     }
   } catch (error) {
-    if (error.name === 'TypeError' || error.message.includes('fetch') || !navigator.onLine) {
-      queueOfflineDonor(payload);
-    } else {
-      showToast(error.message, 'error');
-    }
+    showToast(error.message, 'error');
   }
 }
 
@@ -884,18 +828,8 @@ async function handleEditSubmit(e) {
       throw new Error(errData.error || 'Failed to update donor.');
     }
 
-    const updatedDonor = await res.json();
     showToast('Donor profile updated successfully.', 'success');
     closeEditModal();
-    
-    // Update local state and sync instantly
-    const idx = state.donors.findIndex(d => d.id === id);
-    if (idx !== -1) {
-      state.donors[idx] = updatedDonor;
-    }
-    if (state.excelFileHandle) {
-      syncDonorsToConnectedExcel();
-    }
     fetchDonors();
   } catch (error) {
     showToast(error.message, 'error');
@@ -919,17 +853,7 @@ async function logDonation(id) {
       throw new Error('Could not record donation timestamp.');
     }
     
-    const updatedDonor = await res.json();
     showToast('Donation recorded. Donor is now in a 6-month resting period.', 'success');
-    
-    // Update local state and sync instantly
-    const idx = state.donors.findIndex(d => d.id === id);
-    if (idx !== -1) {
-      state.donors[idx] = updatedDonor;
-    }
-    if (state.excelFileHandle) {
-      syncDonorsToConnectedExcel();
-    }
     fetchDonors();
   } catch (error) {
     showToast(error.message, 'error');
@@ -955,12 +879,6 @@ async function confirmDeleteDonor(donor) {
       }
 
       showToast(`${donor.name}'s profile deleted.`, 'success');
-      
-      // Update local state and sync instantly
-      state.donors = state.donors.filter(d => d.id !== donor.id);
-      if (state.excelFileHandle) {
-        syncDonorsToConnectedExcel();
-      }
       fetchDonors();
     } catch (error) {
       showToast(error.message, 'error');
@@ -1051,65 +969,6 @@ function updateConnectionStatus() {
   }
 }
 
-async function processOfflineQueue() {
-  if (!navigator.onLine) return;
-  try {
-    const offlineQueue = JSON.parse(localStorage.getItem('offline_donors') || '[]');
-    if (offlineQueue.length === 0) return;
-
-    showToast(`Online: Syncing ${offlineQueue.length} offline registration(s)...`, 'info');
-    
-    let successCount = 0;
-    const remainingQueue = [];
-
-    for (const payload of offlineQueue) {
-      try {
-        const res = await fetch('/api/donors', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (res.ok) {
-          successCount++;
-        } else {
-          const errData = await res.json().catch(() => ({}));
-          if (res.status === 400) {
-            console.error('Validation error for offline payload:', errData);
-          } else {
-            remainingQueue.push(payload);
-          }
-        }
-      } catch (err) {
-        remainingQueue.push(payload);
-      }
-    }
-
-    localStorage.setItem('offline_donors', JSON.stringify(remainingQueue));
-    if (successCount > 0) {
-      showToast(`Successfully synced ${successCount} offline donor(s) to the database.`, 'success');
-      if (state.authToken) {
-        fetchDonors();
-      }
-    }
-  } catch (e) {
-    console.error('Error processing offline queue:', e);
-  }
-}
-
-function queueOfflineDonor(payload) {
-  try {
-    const offlineQueue = JSON.parse(localStorage.getItem('offline_donors') || '[]');
-    const isDup = offlineQueue.some(d => d.phone === payload.phone);
-    if (!isDup) {
-      offlineQueue.push(payload);
-      localStorage.setItem('offline_donors', JSON.stringify(offlineQueue));
-    }
-    showToast(`Offline: Registration saved locally and will sync when online.`, 'warning');
-    if (registerForm) registerForm.reset();
-  } catch (e) {
-    console.error('Error queuing offline registration:', e);
-  }
-}
 
 function exportToExcel() {
   if (state.donors.length === 0) {
@@ -1180,315 +1039,6 @@ function exportToExcel() {
   XLSX.writeFile(wb, `Lifesaver_Blood_Registry_${dateStr}.xlsx`);
   
   showToast('Registry exported to Excel (.xlsx) successfully.', 'success');
-}
-
-async function connectExcelFile() {
-  if (typeof XLSX === 'undefined') {
-    showToast('Export library is still loading. Please try again in a second.', 'error');
-    return;
-  }
-  
-  if (!window.showOpenFilePicker) {
-    showToast('Your browser does not support direct file connection. Falling back to manual export.', 'error');
-    return;
-  }
-
-  try {
-    const [fileHandle] = await window.showOpenFilePicker({
-      types: [
-        {
-          description: 'Excel files',
-          accept: {
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']
-          }
-        }
-      ],
-      multiple: false
-    });
-
-    state.excelFileHandle = fileHandle;
-    const file = await fileHandle.getFile();
-    
-    // Update button text to show filename
-    const connectBtnText = document.getElementById('connect-excel-text');
-    if (connectBtnText) {
-      connectBtnText.textContent = `Connected: ${file.name}`;
-    }
-    const connectBtnTextPublic = document.getElementById('connect-excel-text-public');
-    if (connectBtnTextPublic) {
-      connectBtnTextPublic.textContent = `Connected: ${file.name}`;
-    }
-    
-    showToast(`Successfully connected to: ${file.name}`, 'success');
-    
-    // Trigger initial sync to append any missing database donors to this Excel file
-    await syncDonorsToConnectedExcel();
-  } catch (error) {
-    if (error.name !== 'AbortError') {
-      console.error('Error connecting Excel file:', error);
-      showToast(`Failed to connect Excel file: ${error.message}`, 'error');
-    }
-  }
-}
-
-async function syncDonorsToConnectedExcel() {
-  if (!state.excelFileHandle) return;
-  if (state.isSyncingExcel) return;
-  state.isSyncingExcel = true;
-
-  try {
-    // Verify or request read/write permission
-    const hasPermission = await verifyFilePermission(state.excelFileHandle, true);
-    if (!hasPermission) {
-      showToast('Permission denied to access the Excel file.', 'error');
-      state.isSyncingExcel = false;
-      return;
-    }
-
-    const file = await state.excelFileHandle.getFile();
-    const arrayBuffer = await file.arrayBuffer();
-    
-    let workbook;
-    try {
-      workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
-    } catch (e) {
-      // If file is empty or corrupted, create a new workbook
-      workbook = XLSX.utils.book_new();
-    }
-
-    const sheetName = 'Blood Donors Registry';
-    let ws = workbook.Sheets[sheetName];
-    if (!ws) {
-      if (workbook.SheetNames.length > 0) {
-        ws = workbook.Sheets[workbook.SheetNames[0]];
-      } else {
-        ws = XLSX.utils.aoa_to_sheet([]);
-        XLSX.utils.book_append_sheet(workbook, ws, sheetName);
-      }
-    }
-
-    let rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-    const expectedHeaders = ['Blood Group', 'Donor Name', 'House Name', 'Phone Number', 'Unit/Ward No.', 'Eligibility Status', 'Last Donated Date', 'Next Donation Date'];
-
-    let headerRowIndex = -1;
-    let phoneColIndex = 3; // default column D (index 3)
-    
-    // Check if headers already exist in the file
-    for (let r = 0; r < Math.min(rows.length, 5); r++) {
-      const row = rows[r];
-      if (row.some(cell => String(cell).toLowerCase().includes('blood') || String(cell).toLowerCase().includes('phone'))) {
-        headerRowIndex = r;
-        const pIdx = row.findIndex(cell => String(cell).toLowerCase().includes('phone'));
-        if (pIdx !== -1) phoneColIndex = pIdx;
-        break;
-      }
-    }
-
-    if (headerRowIndex === -1) {
-      if (rows.length === 0) {
-        rows.push(expectedHeaders);
-      } else {
-        rows.unshift(expectedHeaders);
-      }
-      headerRowIndex = 0;
-      phoneColIndex = 3;
-    }
-
-    // Helper to extract the last 10 digits of a phone number to ignore country codes/spaces/symbols
-    function extractLast10Digits(phone) {
-      if (!phone) return '';
-      const digits = String(phone).replace(/\D/g, '');
-      return digits.length >= 10 ? digits.slice(-10) : digits;
-    }
-
-    // Collect all existing phone numbers in Excel
-    const existingPhones = new Set();
-    for (let r = headerRowIndex + 1; r < rows.length; r++) {
-      const row = rows[r];
-      if (row && row[phoneColIndex] !== undefined && row[phoneColIndex] !== null) {
-        const cleanedPhone = extractLast10Digits(row[phoneColIndex]);
-        if (cleanedPhone) {
-          existingPhones.add(cleanedPhone);
-        }
-      }
-    }
-
-    // Two-Way Sync: Find donors in Excel that are NOT in the database (Only run when logged in as admin)
-    if (state.authToken) {
-      let bloodColIndex = 0;
-      let nameColIndex = 1;
-      let houseColIndex = 2;
-      let unitColIndex = 4;
-
-      const headers = rows[headerRowIndex] || [];
-      headers.forEach((cell, idx) => {
-        const name = String(cell).toLowerCase();
-        if (name.includes('blood')) bloodColIndex = idx;
-        if (name.includes('name') && !name.includes('house')) nameColIndex = idx;
-        if (name.includes('house')) houseColIndex = idx;
-        if (name.includes('unit') || name.includes('ward')) unitColIndex = idx;
-      });
-
-      const dbPhones = new Set(state.donors.map(d => extractLast10Digits(d.phone)));
-      const newDonorsFromExcel = [];
-
-      for (let r = headerRowIndex + 1; r < rows.length; r++) {
-        const row = rows[r];
-        if (row && row[phoneColIndex]) {
-          const phoneVal = String(row[phoneColIndex]).trim();
-          const cleanedPhone = extractLast10Digits(phoneVal);
-          if (cleanedPhone && !dbPhones.has(cleanedPhone)) {
-            const nameVal = row[nameColIndex] ? String(row[nameColIndex]).trim() : 'Excel Import';
-            const bloodVal = row[bloodColIndex] ? String(row[bloodColIndex]).toUpperCase().trim() : 'O+';
-            const houseVal = row[houseColIndex] ? String(row[houseColIndex]).trim() : '';
-            const unitVal = row[unitColIndex] ? String(row[unitColIndex]).trim() : '1';
-
-            let wardNum = parseInt(unitVal, 10);
-            if (isNaN(wardNum) || wardNum < 1 || wardNum > 22) wardNum = 1;
-
-            newDonorsFromExcel.push({
-              name: nameVal,
-              phone: phoneVal,
-              bloodGroup: bloodVal,
-              houseName: houseVal,
-              unitNo: String(wardNum)
-            });
-          }
-        }
-      }
-
-      if (newDonorsFromExcel.length > 0) {
-        const offlineQueue = JSON.parse(localStorage.getItem('offline_donors') || '[]');
-        let addedCount = 0;
-        newDonorsFromExcel.forEach(donor => {
-          const isDup = offlineQueue.some(d => extractLast10Digits(d.phone) === extractLast10Digits(donor.phone));
-          if (!isDup) {
-            offlineQueue.push(donor);
-            addedCount++;
-          }
-        });
-        if (addedCount > 0) {
-          localStorage.setItem('offline_donors', JSON.stringify(offlineQueue));
-          showToast(`Detected ${addedCount} new donor(s) in Excel. Queued for database sync.`, 'info');
-          if (navigator.onLine) {
-            processOfflineQueue();
-          }
-        }
-      }
-    }
-
-    const newDonorsToAppend = [];
-    state.donors.forEach(donor => {
-      const cleanedDBPhone = extractLast10Digits(donor.phone);
-      if (!existingPhones.has(cleanedDBPhone)) {
-        newDonorsToAppend.push(donor);
-      }
-    });
-
-    if (newDonorsToAppend.length === 0) {
-      state.isSyncingExcel = false;
-      return;
-    }
-
-    // Append new donors
-    newDonorsToAppend.forEach(donor => {
-      const eligibility = calculateEligibility(donor.lastDonated);
-      
-      let nextDonationStr = 'Immediately';
-      if (donor.lastDonated) {
-        const nextDate = new Date(donor.lastDonated);
-        nextDate.setMonth(nextDate.getMonth() + 6);
-        nextDonationStr = nextDate.toLocaleDateString();
-      }
-
-      const newRow = [];
-      newRow[0] = donor.bloodGroup;
-      newRow[1] = donor.name;
-      newRow[2] = donor.houseName || '';
-      newRow[3] = String(donor.phone);
-      newRow[4] = String(donor.unitNo || '');
-      newRow[5] = eligibility.eligible ? 'Eligible' : 'Resting';
-      newRow[6] = donor.lastDonated ? new Date(donor.lastDonated).toLocaleDateString() : 'Never';
-      newRow[7] = nextDonationStr;
-      
-      rows.push(newRow);
-    });
-
-    const newWs = XLSX.utils.aoa_to_sheet(rows);
-    const range = XLSX.utils.decode_range(newWs['!ref']);
-    for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-      const phoneCellRef = XLSX.utils.encode_cell({ r: R, c: 3 });
-      if (newWs[phoneCellRef]) {
-        newWs[phoneCellRef].t = 's';
-      }
-      const unitCellRef = XLSX.utils.encode_cell({ r: R, c: 4 });
-      if (newWs[unitCellRef]) {
-        newWs[unitCellRef].t = 's';
-      }
-    }
-
-    const activeSheetName = workbook.SheetNames[0] || sheetName;
-    workbook.Sheets[activeSheetName] = newWs;
-
-    const wbOut = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-    const writable = await state.excelFileHandle.createWritable();
-    await writable.write(wbOut);
-    await writable.close();
-
-    showToast(`Excel file synced. Appended ${newDonorsToAppend.length} new donor(s).`, 'success');
-  } catch (error) {
-    console.error('Excel Sync Error:', error);
-    if (error.name === 'NotAllowedError') {
-      showToast('Permission to write to the connected Excel file was denied.', 'error');
-    } else if (error.message && error.message.includes('locked')) {
-      showToast('Excel file is locked (it may be open in Excel). Please close the file to allow auto-sync.', 'warning');
-    } else {
-      showToast(`Excel Auto-Sync failed: ${error.message}. If the file is open in Excel, please close it.`, 'warning');
-    }
-  } finally {
-    state.isSyncingExcel = false;
-  }
-}
-
-async function verifyFilePermission(fileHandle, readWrite) {
-  const options = {};
-  if (readWrite) {
-    options.mode = 'readwrite';
-  }
-  if ((await fileHandle.queryPermission(options)) === 'granted') {
-    return true;
-  }
-  if ((await fileHandle.requestPermission(options)) === 'granted') {
-    return true;
-  }
-  return false;
-}
-
-function initSSE() {
-  if (!state.authToken) return;
-  if (state.sseSource) {
-    state.sseSource.close();
-  }
-
-  const sse = new EventSource('/api/updates');
-  sse.onmessage = (event) => {
-    if (event.data === 'update') {
-      fetchDonors();
-    }
-  };
-  sse.onerror = (err) => {
-    console.warn('SSE connection lost. Reconnecting in 5 seconds...', err);
-    sse.close();
-    setTimeout(initSSE, 5000);
-  };
-  state.sseSource = sse;
-}
-
-function closeSSE() {
-  if (state.sseSource) {
-    state.sseSource.close();
-    state.sseSource = null;
-  }
 }
 
 function escapeHtml(str) {
