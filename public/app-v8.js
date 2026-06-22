@@ -759,7 +759,6 @@ async function handleRegisterSubmit(e) {
       await fetchDonors();
       switchView('list-page');
     } else {
-      await fetchPublicDonors();
       switchView('register-page');
     }
   } catch (error) {
@@ -978,7 +977,10 @@ function updateConnectionStatus() {
     offlineBanner.classList.add('hidden');
   } else {
     offlineBanner.classList.remove('hidden');
-    showToast('Your device went offline. Syncing paused.', 'error');
+    showToast('Your device went offline. Logging out for security.', 'error');
+    if (state.authToken) {
+      handleLogout();
+    }
   }
 }
 
