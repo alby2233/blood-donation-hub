@@ -935,51 +935,59 @@ function exportToExcel() {
     return;
   }
 
-  // Define Excel/CSV headers matching our table
+  // Define Excel headers matching our table
   const headers = ['Blood Group', 'Donor Name', 'Phone Number', 'Unit/Ward No.', 'Eligibility Status', 'Last Donated Date'];
   
-  // Format rows
-  const rows = state.donors.map(donor => {
+  // Check if SheetJS library is loaded
+  if (typeof XLSX === 'undefined') {
+    showToast('Export library is still loading. Please try again in a second.', 'error');
+    return;
+  }
+
+  // Format data rows
+  const data = state.donors.map(donor => {
     const eligibility = calculateEligibility(donor.lastDonated);
     return [
       donor.bloodGroup,
       donor.name,
-      donor.phone,
-      donor.unitNo || '',
+      String(donor.phone),
+      String(donor.unitNo || ''),
       eligibility.eligible ? 'Eligible' : 'Resting',
       donor.lastDonated ? new Date(donor.lastDonated).toLocaleDateString() : 'Never'
     ];
   });
 
-  // Combine headers and rows with UTF-8 BOM
-  const csvContent = [
-    headers.join(','),
-    ...rows.map(row => row.map((val, colIndex) => {
-      // Force text formula format for Phone Number (col index 2) and Unit/Ward No (col index 3)
-      // to prevent Microsoft Excel from converting them to scientific notation or removing leading zeros.
-      if (colIndex === 2 || colIndex === 3) {
-        val = `="${val}"`;
-      }
-      // Escape double quotes by doubling them, and wrap string in double quotes
-      const escaped = String(val).replace(/"/g, '""');
-      return `"${escaped}"`;
-    }).join(','))
-  ].join('\r\n');
+  // Combine headers and rows
+  const sheetData = [headers, ...data];
 
-  // Create UTF-8 BOM blob so Excel opens it with correct encoding
-  const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
+  // Create workbook and worksheet
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+  // Set the cell format explicitly to text (string type 's') for Phone Number and Unit/Ward No
+  // to prevent Microsoft Excel from converting them to scientific notation or removing leading zeros.
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+    // Column 2 (Phone Number)
+    const phoneCellRef = XLSX.utils.encode_cell({ r: R, c: 2 });
+    if (ws[phoneCellRef]) {
+      ws[phoneCellRef].t = 's'; // Force type to string
+    }
+    // Column 3 (Unit/Ward No.)
+    const unitCellRef = XLSX.utils.encode_cell({ r: R, c: 3 });
+    if (ws[unitCellRef]) {
+      ws[unitCellRef].t = 's'; // Force type to string
+    }
+  }
+
+  // Add worksheet to workbook
+  XLSX.utils.book_append_sheet(wb, ws, 'Blood Donors Registry');
+
+  // Trigger download of native .xlsx file
+  const dateStr = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `Lifesaver_Blood_Registry_${dateStr}.xlsx`);
   
-  const link = document.createElement('a');
-  link.setAttribute('href', url);
-  link.setAttribute('download', `Lifesaver_Blood_Registry_${new Date().toISOString().slice(0, 10)}.csv`);
-  link.style.visibility = 'hidden';
-  
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  
-  showToast('Registry exported to Excel successfully.', 'success');
+  showToast('Registry exported to Excel (.xlsx) successfully.', 'success');
 }
 
 function escapeHtml(str) {
