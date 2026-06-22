@@ -989,7 +989,7 @@ function exportToExcel() {
   }
 
   // Define Excel headers matching our table
-  const headers = ['Blood Group', 'Donor Name', 'House Name', 'Phone Number', 'Unit/Ward No.', 'Eligibility Status', 'Last Donated Date'];
+  const headers = ['Blood Group', 'Donor Name', 'House Name', 'Phone Number', 'Unit/Ward No.', 'Eligibility Status', 'Last Donated Date', 'Next Donation Date'];
   
   // Check if SheetJS library is loaded
   if (typeof XLSX === 'undefined') {
@@ -1000,6 +1000,14 @@ function exportToExcel() {
   // Format data rows
   const data = state.donors.map(donor => {
     const eligibility = calculateEligibility(donor.lastDonated);
+    
+    let nextDonationStr = 'Immediately';
+    if (donor.lastDonated) {
+      const nextDate = new Date(donor.lastDonated);
+      nextDate.setMonth(nextDate.getMonth() + 6);
+      nextDonationStr = nextDate.toLocaleDateString();
+    }
+
     return [
       donor.bloodGroup,
       donor.name,
@@ -1007,7 +1015,8 @@ function exportToExcel() {
       String(donor.phone),
       String(donor.unitNo || ''),
       eligibility.eligible ? 'Eligible' : 'Resting',
-      donor.lastDonated ? new Date(donor.lastDonated).toLocaleDateString() : 'Never'
+      donor.lastDonated ? new Date(donor.lastDonated).toLocaleDateString() : 'Never',
+      nextDonationStr
     ];
   });
 
@@ -1126,7 +1135,7 @@ async function syncDonorsToConnectedExcel() {
     }
 
     let rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-    const expectedHeaders = ['Blood Group', 'Donor Name', 'House Name', 'Phone Number', 'Unit/Ward No.', 'Eligibility Status', 'Last Donated Date'];
+    const expectedHeaders = ['Blood Group', 'Donor Name', 'House Name', 'Phone Number', 'Unit/Ward No.', 'Eligibility Status', 'Last Donated Date', 'Next Donation Date'];
 
     let headerRowIndex = -1;
     let phoneColIndex = 3; // default column D (index 3)
@@ -1187,6 +1196,14 @@ async function syncDonorsToConnectedExcel() {
     // Append new donors
     newDonorsToAppend.forEach(donor => {
       const eligibility = calculateEligibility(donor.lastDonated);
+      
+      let nextDonationStr = 'Immediately';
+      if (donor.lastDonated) {
+        const nextDate = new Date(donor.lastDonated);
+        nextDate.setMonth(nextDate.getMonth() + 6);
+        nextDonationStr = nextDate.toLocaleDateString();
+      }
+
       const newRow = [];
       newRow[0] = donor.bloodGroup;
       newRow[1] = donor.name;
@@ -1195,6 +1212,7 @@ async function syncDonorsToConnectedExcel() {
       newRow[4] = String(donor.unitNo || '');
       newRow[5] = eligibility.eligible ? 'Eligible' : 'Resting';
       newRow[6] = donor.lastDonated ? new Date(donor.lastDonated).toLocaleDateString() : 'Never';
+      newRow[7] = nextDonationStr;
       
       rows.push(newRow);
     });
