@@ -90,14 +90,17 @@ app.post('/api/logout', (req, res) => {
   res.json({ success: true });
 });
 
-// Get public summary of donors (names and blood groups only, unsecured)
+
+
+// Get public summary of donors (names, blood groups, and wards/units only, unsecured)
 app.get('/api/public-donors', async (req, res) => {
   try {
     const donors = await db.getDonors();
     const publicData = donors.map(d => ({
       id: d.id,
       name: d.name,
-      bloodGroup: d.bloodGroup
+      bloodGroup: d.bloodGroup,
+      unitNo: d.unitNo
     }));
     res.json(publicData);
   } catch (error) {

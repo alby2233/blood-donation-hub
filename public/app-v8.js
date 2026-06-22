@@ -106,10 +106,10 @@ function setupEventListeners() {
     e.preventDefault();
     switchView(state.authToken ? 'list-page' : 'register-page');
   });
-  // Footer Admin Portal Link Click
-  const footerLogin = document.getElementById('footer-admin-login');
-  if (footerLogin) {
-    footerLogin.addEventListener('click', (e) => {
+  // Register Page Admin Login Button Click
+  const registerAdminLoginBtn = document.getElementById('register-admin-login-btn');
+  if (registerAdminLoginBtn) {
+    registerAdminLoginBtn.addEventListener('click', (e) => {
       e.preventDefault();
       switchView('login-page');
     });
@@ -404,7 +404,7 @@ function renderPublicDonors(donors) {
   
   const listWrapper = document.createElement('div');
   listWrapper.style.display = 'grid';
-  listWrapper.style.gridTemplateColumns = 'repeat(auto-fill, minmax(160px, 1fr))';
+  listWrapper.style.gridTemplateColumns = 'repeat(auto-fill, minmax(200px, 1fr))';
   listWrapper.style.gap = '12px';
   listWrapper.style.marginTop = '8px';
   
@@ -417,11 +417,20 @@ function renderPublicDonors(donors) {
     item.style.display = 'flex';
     item.style.justifyContent = 'space-between';
     item.style.alignItems = 'center';
-    item.style.gap = '8px';
+    item.style.gap = '12px';
+    item.style.overflow = 'hidden';
     
     item.innerHTML = `
-      <span style="font-weight: 600; color: var(--text-main); font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 105px;" title="${escapeHtml(donor.name)}">${escapeHtml(donor.name)}</span>
-      <span class="table-blood-badge" style="margin: 0; padding: 2px 8px; font-size: 0.8rem; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700;">${escapeHtml(donor.bloodGroup)}</span>
+      <div style="display: flex; flex-direction: column; gap: 4px; overflow: hidden;">
+        <span style="font-weight: 600; color: var(--text-main); font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(donor.name)}">${escapeHtml(donor.name)}</span>
+        <span style="font-size: 0.78rem; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px; opacity: 0.6; flex-shrink: 0;">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+          </svg>
+          Ward: ${escapeHtml(donor.unitNo || '-')}
+        </span>
+      </div>
+      <span class="table-blood-badge" style="margin: 0; padding: 2px 8px; font-size: 0.8rem; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">${escapeHtml(donor.bloodGroup)}</span>
     `;
     listWrapper.appendChild(item);
   });

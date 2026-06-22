@@ -157,11 +157,18 @@
 
     <!-- PAGE 2: REGISTER / ADD DONOR PAGE -->
     <section id="register-page" class="page-view active">
-      <div class="page-header">
+      <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
         <div class="page-title-area">
           <h1>Register New Donor</h1>
           <p>Join the registry to save lives. Fill in the details to add a new donor profile.</p>
         </div>
+        <button class="submit-btn unauth-only" id="register-admin-login-btn" style="padding: 10px 20px; font-size: 0.95rem; background-color: var(--accent-blue); box-shadow: 0 4px 10px var(--accent-blue-glow);">
+          <svg style="width:16px;height:16px;margin-right:8px;vertical-align:middle;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <span>Admin Login</span>
+        </button>
       </div>
 
       <div class="form-container">
@@ -421,7 +428,7 @@
   <footer class="app-footer">
     <div class="footer-content">
       <p>&copy; 2026 Lifesaver Blood Donation Network. All rights reserved.</p>
-      <p class="footer-subtext">Providing critical donation matching for health systems globally. <span style="opacity: 0.5; margin-left: 8px;">v1.0.9</span> <span class="unauth-only" style="margin-left: 12px; margin-right: 12px; opacity: 0.5;">|</span> <a href="#" class="unauth-only" id="footer-admin-login" style="color: var(--text-muted); text-decoration: none; font-weight: 500; transition: color 0.2s ease;">Admin Portal</a></p>
+      <p class="footer-subtext">Providing critical donation matching for health systems globally. <span style="opacity: 0.5; margin-left: 8px;">v1.0.9</span></p>
     </div>
   </footer>
 
