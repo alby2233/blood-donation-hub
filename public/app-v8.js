@@ -954,7 +954,12 @@ function exportToExcel() {
   // Combine headers and rows with UTF-8 BOM
   const csvContent = [
     headers.join(','),
-    ...rows.map(row => row.map(val => {
+    ...rows.map(row => row.map((val, colIndex) => {
+      // Force text formula format for Phone Number (col index 2) and Unit/Ward No (col index 3)
+      // to prevent Microsoft Excel from converting them to scientific notation or removing leading zeros.
+      if (colIndex === 2 || colIndex === 3) {
+        val = `="${val}"`;
+      }
       // Escape double quotes by doubling them, and wrap string in double quotes
       const escaped = String(val).replace(/"/g, '""');
       return `"${escaped}"`;
