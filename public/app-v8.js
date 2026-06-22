@@ -679,8 +679,9 @@ async function handleRegisterSubmit(e) {
     phoneInput.closest('.form-group').classList.remove('has-error');
   }
 
-  // Validate Unit/Ward (Required)
-  if (!unitInput || !unitInput.value || unitInput.value.trim().length === 0) {
+  // Validate Unit/Ward (Required, must be integer between 1 and 22)
+  const wardValue = parseInt(unitInput.value.trim(), 10);
+  if (!unitInput || !unitInput.value || isNaN(wardValue) || wardValue < 1 || wardValue > 22) {
     unitInput.closest('.form-group').classList.add('has-error');
     hasError = true;
   } else {
@@ -756,8 +757,9 @@ async function handleEditSubmit(e) {
     phoneInput.closest('.form-group').classList.remove('has-error');
   }
 
-  // Validate Unit/Ward (Required)
-  if (!unitInput || !unitInput.value || unitInput.value.trim().length === 0) {
+  // Validate Unit/Ward (Required, must be integer between 1 and 22)
+  const wardValue = parseInt(unitInput.value.trim(), 10);
+  if (!unitInput || !unitInput.value || isNaN(wardValue) || wardValue < 1 || wardValue > 22) {
     unitInput.closest('.form-group').classList.add('has-error');
     hasError = true;
   } else {

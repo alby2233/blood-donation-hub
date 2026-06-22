@@ -57,6 +57,11 @@ function validateDonorInput(req, res, next) {
     return res.status(400).json({ error: `Blood group must be one of: ${validBloodGroups.join(', ')}` });
   }
   
+  const unitNum = parseInt(unitNo, 10);
+  if (isNaN(unitNum) || unitNum < 1 || unitNum > 22) {
+    return res.status(400).json({ error: 'Ward / Unit number must be a valid number between 1 and 22' });
+  }
+
   // Clean inputs for route handler
   req.cleanedBody = {
     name: name.trim(),
