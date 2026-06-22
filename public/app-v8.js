@@ -106,14 +106,7 @@ function setupEventListeners() {
     e.preventDefault();
     switchView(state.authToken ? 'list-page' : 'register-page');
   });
-  // Register Page Admin Login Button Click
-  const registerAdminLoginBtn = document.getElementById('register-admin-login-btn');
-  if (registerAdminLoginBtn) {
-    registerAdminLoginBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      switchView('login-page');
-    });
-  }
+
   // Desktop & Mobile Navigation Links
   Object.keys(navButtons).forEach(viewKey => {
     navButtons[viewKey].forEach(btn => {
