@@ -59,22 +59,18 @@ const editCancel = document.getElementById('edit-cancel');
 // INITIALIZATION
 // ==========================================================================
 document.addEventListener('DOMContentLoaded', () => {
-  // Load Initial Donors Data (auth or public)
+  // Load Initial Donors Data if logged in
   if (state.authToken) {
     fetchDonors();
-  } else {
-    fetchPublicDonors();
   }
 
   // Setup Event Listeners
   setupEventListeners();
 
-  // Periodically sync the donor list in the background every 8 seconds
+  // Periodically sync the donor list in the background every 8 seconds for logged in users
   setInterval(() => {
     if (state.authToken) {
       fetchDonors();
-    } else {
-      fetchPublicDonors();
     }
   }, 8000);
 
@@ -159,19 +155,13 @@ function setupEventListeners() {
     }
   });
 
-  // Print Button trigger
+  // Export Button trigger
   const printBtn = document.getElementById('print-btn');
   if (printBtn) {
     printBtn.addEventListener('click', () => {
-      renderPrintSection();
-      window.print();
+      exportToExcel();
     });
   }
-
-  // Fallback print listeners for Ctrl+P / browser menu triggers
-  window.addEventListener('beforeprint', () => {
-    renderPrintSection();
-  });
 
   // Forms Hook (rebind triggers on dynamic page updates)
   bindFormSubmissions();
@@ -366,69 +356,7 @@ async function handleLogout() {
 // ==========================================================================
 // DATA API INTERACTION
 // ==========================================================================
-async function fetchPublicDonors() {
-  try {
-    const res = await fetch('/api/public-donors?_t=' + Date.now());
-    if (!res.ok) throw new Error('Failed to fetch public donors.');
-    const publicDonors = await res.json();
-    
-    // Sort alphabetically by name
-    publicDonors.sort((a, b) => a.name.localeCompare(b.name));
-    
-    renderPublicDonors(publicDonors);
-  } catch (error) {
-    console.error(error);
-    const container = document.getElementById('public-donors-list');
-    if (container) {
-      container.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.95rem; padding: 10px 0;">Unable to load donor list directory.</p>`;
-    }
-  }
-}
 
-function renderPublicDonors(donors) {
-  const container = document.getElementById('public-donors-list');
-  if (!container) return;
-  container.innerHTML = '';
-  
-  if (donors.length === 0) {
-    container.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.95rem; padding: 10px 0;">No active donors registered yet.</p>`;
-    return;
-  }
-  
-  const listWrapper = document.createElement('div');
-  listWrapper.style.display = 'grid';
-  listWrapper.style.gridTemplateColumns = 'repeat(auto-fill, minmax(200px, 1fr))';
-  listWrapper.style.gap = '12px';
-  listWrapper.style.marginTop = '8px';
-  
-  donors.forEach(donor => {
-    const item = document.createElement('div');
-    item.style.backgroundColor = 'var(--bg-primary)';
-    item.style.border = '1px solid var(--border-color)';
-    item.style.borderRadius = 'var(--radius-sm)';
-    item.style.padding = '10px 14px';
-    item.style.display = 'flex';
-    item.style.justifyContent = 'space-between';
-    item.style.alignItems = 'center';
-    item.style.gap = '12px';
-    item.style.overflow = 'hidden';
-    
-    item.innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 4px; overflow: hidden;">
-        <span style="font-weight: 600; color: var(--text-main); font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(donor.name)}">${escapeHtml(donor.name)}</span>
-        <span style="font-size: 0.78rem; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px; opacity: 0.6; flex-shrink: 0;">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-          </svg>
-          Ward: ${escapeHtml(donor.unitNo || '-')}
-        </span>
-      </div>
-      <span class="table-blood-badge" style="margin: 0; padding: 2px 8px; font-size: 0.8rem; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">${escapeHtml(donor.bloodGroup)}</span>
-    `;
-    listWrapper.appendChild(item);
-  });
-  container.appendChild(listWrapper);
-}
 
 async function fetchDonors() {
   if (!state.authToken) return;
@@ -1001,41 +929,52 @@ function updateConnectionStatus() {
   }
 }
 
-function renderPrintSection() {
-  const printSection = document.getElementById('print-section');
-  if (!printSection) return;
-
+function exportToExcel() {
   if (state.donors.length === 0) {
-    printSection.innerHTML = `
-      <div class="print-header">
-        <h1>Blood Donor Registry</h1>
-      </div>
-      <p>No registered donors found in the database.</p>
-    `;
+    showToast('No registered donors to export.', 'error');
     return;
   }
 
-  let html = `
-    <div class="print-header">
-      <h1>Blood Donor Registry</h1>
-    </div>
-  `;
-
-  state.donors.forEach(donor => {
+  // Define Excel/CSV headers matching our table
+  const headers = ['Blood Group', 'Donor Name', 'Phone Number', 'Unit/Ward No.', 'Eligibility Status', 'Last Donated Date'];
+  
+  // Format rows
+  const rows = state.donors.map(donor => {
     const eligibility = calculateEligibility(donor.lastDonated);
-    html += `
-      <div class="print-donor-record">
-        <h3>${escapeHtml(donor.name)}</h3>
-        <p>Phone: ${escapeHtml(donor.phone)}</p>
-        <p>Blood Group: ${escapeHtml(donor.bloodGroup)}</p>
-        <p>Unit / Ward No: ${escapeHtml(donor.unitNo || '-')}</p>
-        <p>Status: ${eligibility.eligible ? 'Eligible' : 'Resting'}</p>
-      </div>
-      <hr class="print-separator">
-    `;
+    return [
+      donor.bloodGroup,
+      donor.name,
+      donor.phone,
+      donor.unitNo || '',
+      eligibility.eligible ? 'Eligible' : 'Resting',
+      donor.lastDonated ? new Date(donor.lastDonated).toLocaleDateString() : 'Never'
+    ];
   });
 
-  printSection.innerHTML = html;
+  // Combine headers and rows with UTF-8 BOM
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.map(val => {
+      // Escape double quotes by doubling them, and wrap string in double quotes
+      const escaped = String(val).replace(/"/g, '""');
+      return `"${escaped}"`;
+    }).join(','))
+  ].join('\r\n');
+
+  // Create UTF-8 BOM blob so Excel opens it with correct encoding
+  const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `Lifesaver_Blood_Registry_${new Date().toISOString().slice(0, 10)}.csv`);
+  link.style.visibility = 'hidden';
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  showToast('Registry exported to Excel successfully.', 'success');
 }
 
 function escapeHtml(str) {

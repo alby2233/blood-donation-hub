@@ -92,22 +92,7 @@ app.post('/api/logout', (req, res) => {
 
 
 
-// Get public summary of donors (names, blood groups, and wards/units only, unsecured)
-app.get('/api/public-donors', async (req, res) => {
-  try {
-    const donors = await db.getDonors();
-    const publicData = donors.map(d => ({
-      id: d.id,
-      name: d.name,
-      bloodGroup: d.bloodGroup,
-      unitNo: d.unitNo
-    }));
-    res.json(publicData);
-  } catch (error) {
-    console.error('Error fetching public donors:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
+
 
 // Get all donors
 app.get('/api/donors', requireAuth, async (req, res) => {

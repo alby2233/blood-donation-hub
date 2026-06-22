@@ -115,11 +115,11 @@
         </div>
         <button class="submit-btn" id="print-btn" style="padding: 10px 20px; font-size: 0.95rem; background-color: var(--accent-blue); box-shadow: 0 4px 10px var(--accent-blue-glow);">
           <svg style="width:16px;height:16px;margin-right:8px;vertical-align:middle;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <polyline points="6 9 6 2 18 2 18 9"></polyline>
-            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-            <rect x="6" y="14" width="12" height="8"></rect>
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
-          <span>Print Registry</span>
+          <span>Export Registry</span>
         </button>
       </div>
 
@@ -236,20 +236,6 @@
             <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </button>
         </form>
-      </div>
-
-      <!-- Public Donors Directory List -->
-      <div class="form-container" style="margin-top: 48px; max-width: 720px;">
-        <div class="glass-form" style="padding: 30px; gap: 16px;">
-          <h2 style="font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; color: var(--text-main); margin-bottom: 4px; text-align: center;">Active Blood Donors Directory</h2>
-          <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; margin-bottom: 12px; margin-top: 0;">Showing names and blood groups of registered volunteers.</p>
-          <div id="public-donors-list">
-            <div class="loading-state" style="padding: 20px;">
-              <div class="spinner"></div>
-              <p>Loading directory...</p>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
 
